@@ -12,11 +12,10 @@
   // Ensure the bind-mount source files exist on the host before Docker mounts them.
   // Without this, missing paths would be created as empty directories inside the
   // container, which breaks git's expectation of a regular file at ~/.gitconfig.
-  "initializeCommand": "touch \"${localEnv:HOME}/.gitconfig\" \"${localEnv:HOME}/.git-credentials\"",
+  // Also create dotfiles/.claude and dotfiles/.gemini so the postCreate symlink targets exist on first run.
+  "initializeCommand": "touch \"${localEnv:HOME}/.gitconfig\" \"${localEnv:HOME}/.git-credentials\" && mkdir -p \"${localWorkspaceFolder}/.devcontainer/dotfiles/.claude\" \"${localWorkspaceFolder}/.devcontainer/dotfiles/.gemini\"",
 
   "mounts": [
-    // Mount host ~/.claude so Claude Code settings, memory, and auth are shared with the container
-    "source=${localEnv:HOME}/.claude,target=/home/ubuntu/.claude,type=bind",
     // Share host git identity (user.name / user.email) and credentials so `git push`
     // works after every rebuild — provided the host stores credentials in a file
     // (helper=store). macOS users with the default osxkeychain helper need to switch
@@ -40,11 +39,11 @@
   "containerUser": "ubuntu",
   "remoteUser": "ubuntu",
 
-  // Install all dependencies including dev extras after the container is created
-  // Also copy SSH keys from dotfiles and lock down permissions required by OpenSSH
-  // TPM is cloned and plugins (catppuccin/tmux) are installed so tmux is themed on first launch
+  // Copy SSH keys from dotfiles and lock down permissions required by OpenSSH,
+  // symlink dotfiles into $HOME, and install tmux plugins via TPM on first launch.
   // Uses $HOME (= /home/ubuntu at runtime) so the command stays user-agnostic.
-  "postCreateCommand": "cp -r /workspace/.devcontainer/dotfiles/.ssh \"$HOME/.ssh\" && chmod 700 \"$HOME/.ssh\" && chmod 600 \"$HOME/.ssh\"/* && ln -sfn /workspace/.devcontainer/dotfiles/.zshrc \"$HOME/.zshrc\" && ln -sfn /workspace/.devcontainer/dotfiles/.tmux.conf \"$HOME/.tmux.conf\" && ln -sfn /workspace/.devcontainer/dotfiles/.config \"$HOME/.config\" && (test -d \"$HOME/.tmux/plugins/tpm\" || git clone --depth 1 https://github.com/tmux-plugins/tpm \"$HOME/.tmux/plugins/tpm\") && \"$HOME/.tmux/plugins/tpm/bin/install_plugins\" && uv sync --group dev",
+  // Python deps are intentionally NOT auto-synced — run `uv sync` manually per project.
+  "postCreateCommand": "cp -r /workspace/.devcontainer/dotfiles/.ssh \"$HOME/.ssh\" && chmod 700 \"$HOME/.ssh\" && chmod 600 \"$HOME/.ssh\"/* && ln -sfn /workspace/.devcontainer/dotfiles/.zshrc \"$HOME/.zshrc\" && ln -sfn /workspace/.devcontainer/dotfiles/.tmux.conf \"$HOME/.tmux.conf\" && ln -sfn /workspace/.devcontainer/dotfiles/.config \"$HOME/.config\" && rm -rf \"$HOME/.claude\" && ln -s /workspace/.devcontainer/dotfiles/.claude \"$HOME/.claude\" && rm -rf \"$HOME/.gemini\" && ln -s /workspace/.devcontainer/dotfiles/.gemini \"$HOME/.gemini\" && (test -d \"$HOME/.tmux/plugins/tpm\" || git clone --depth 1 https://github.com/tmux-plugins/tpm \"$HOME/.tmux/plugins/tpm\") && \"$HOME/.tmux/plugins/tpm/bin/install_plugins\"",
 
   // Write to /etc/gitconfig (--system), not ~/.gitconfig (--global). The host's
   // ~/.gitconfig is bind-mounted as a single file, and git rewrites config
