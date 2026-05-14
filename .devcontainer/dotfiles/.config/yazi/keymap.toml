@@ -1,0 +1,4 @@
+[[manager.prepend_keymap]]
+on  = ["c", "c"]
+run = 'shell -- bash -c "printf \"\\033]52;c;$(echo -n \"$1\" | base64 -w0)\\a\"" -- $0'
+desc = "Copy path to clipboard (OSC 52)"

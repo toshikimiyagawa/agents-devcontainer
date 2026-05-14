@@ -1,0 +1,57 @@
+{
+  "name": "AI Agent Dev Container",
+
+  "build": {
+    "context": "..",
+    "dockerfile": "../.devcontainer/Dockerfile"
+  },
+
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+  "workspaceFolder": "/workspace",
+
+  // Ensure the bind-mount source files exist on the host before Docker mounts them.
+  // Without this, missing paths would be created as empty directories inside the
+  // container, which breaks git's expectation of a regular file at ~/.gitconfig.
+  "initializeCommand": "touch \"${localEnv:HOME}/.gitconfig\" \"${localEnv:HOME}/.git-credentials\"",
+
+  "mounts": [
+    // Mount host ~/.claude so Claude Code settings, memory, and auth are shared with the container
+    "source=${localEnv:HOME}/.claude,target=/home/ubuntu/.claude,type=bind",
+    // Share host git identity (user.name / user.email) and credentials so `git push`
+    // works after every rebuild — provided the host stores credentials in a file
+    // (helper=store). macOS users with the default osxkeychain helper need to switch
+    // once: `git config --global credential.helper store` then re-auth to populate
+    // ~/.git-credentials. See README.md "Git authentication on the host".
+    "source=${localEnv:HOME}/.gitconfig,target=/home/ubuntu/.gitconfig,type=bind",
+    "source=${localEnv:HOME}/.git-credentials,target=/home/ubuntu/.git-credentials,type=bind"
+  ],
+
+  "remoteEnv": {
+    // Trust mise config files in /workspace without interactive prompts
+    "MISE_TRUSTED_CONFIG_PATHS": "/workspace"
+  },
+
+  // Run as the non-root `ubuntu` user (provided by the Ubuntu 24.04+ base image)
+  // so files produced inside the container land with the host user's UID instead
+  // of root. updateRemoteUserUID defaults to true on Linux: the CLI rewrites the
+  // ubuntu user's UID/GID at start time to match the host and chowns $HOME. This
+  // is what makes bind-mounted files (.venv, generated artifacts, etc.) editable
+  // on the WSL host.
+  "containerUser": "ubuntu",
+  "remoteUser": "ubuntu",
+
+  // Install all dependencies including dev extras after the container is created
+  // Also copy SSH keys from dotfiles and lock down permissions required by OpenSSH
+  // TPM is cloned and plugins (catppuccin/tmux) are installed so tmux is themed on first launch
+  // Uses $HOME (= /home/ubuntu at runtime) so the command stays user-agnostic.
+  "postCreateCommand": "cp -r /workspace/.devcontainer/dotfiles/.ssh \"$HOME/.ssh\" && chmod 700 \"$HOME/.ssh\" && chmod 600 \"$HOME/.ssh\"/* && ln -sfn /workspace/.devcontainer/dotfiles/.zshrc \"$HOME/.zshrc\" && ln -sfn /workspace/.devcontainer/dotfiles/.tmux.conf \"$HOME/.tmux.conf\" && ln -sfn /workspace/.devcontainer/dotfiles/.config \"$HOME/.config\" && (test -d \"$HOME/.tmux/plugins/tpm\" || git clone --depth 1 https://github.com/tmux-plugins/tpm \"$HOME/.tmux/plugins/tpm\") && \"$HOME/.tmux/plugins/tpm/bin/install_plugins\" && uv sync --group dev",
+
+  // Write to /etc/gitconfig (--system), not ~/.gitconfig (--global). The host's
+  // ~/.gitconfig is bind-mounted as a single file, and git rewrites config
+  // atomically via rename(2), which the kernel rejects with EBUSY on a
+  // bind-mounted file. /etc/gitconfig lives in the container's writable layer
+  // so the rename succeeds. The write needs sudo since postStart now runs as the
+  // non-root devcontainer user (NOPASSWD sudoers entry is set in the Dockerfile).
+  // Still idempotent so repeated starts don't dupe.
+  "postStartCommand": "git config --system --get-all safe.directory | grep -qx /workspace || sudo git config --system --add safe.directory /workspace"
+}
