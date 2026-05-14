@@ -37,10 +37,8 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
-# Install @google/gemini-cli globally
-RUN npm install -g @google/gemini-cli
-
-# Install mise (polyglot runtime manager)
+# Install @google/gemini-cli and OpenSpec (spec-driven development) globally
+RUN npm install -g @google/gemini-cli @fission-ai/openspec
 
 # Install starship prompt
 RUN curl -fsSL https://starship.rs/install.sh | sh -s -- --yes
@@ -57,44 +55,16 @@ RUN ARCH=$(dpkg --print-architecture) \
     && install /tmp/yazi/yazi-${YAZI_ARCH}-unknown-linux-musl/yazi /usr/local/bin/yazi \
     && rm -rf /tmp/yazi.zip /tmp/yazi
 
-# Set zsh as default shell for root (kept so `docker exec -u root` sessions get zsh too)
-RUN chsh -s /bin/zsh
-
-# Configure the `ubuntu` user (UID/GID 1000, ships with the Ubuntu 24.04+ base
-# image) as the runtime user. devcontainer CLI's updateRemoteUserUID (default
-# true on Linux) rewrites the UID/GID at start time to match the host user and
-# chowns $HOME, so files created inside the container don't end up root-owned on
-# the WSL/Linux host.
-# sudo is needed so postStartCommand can write to /etc/gitconfig (--system).
-RUN apt-get update && apt-get install -y --no-install-recommends sudo \
-    && rm -rf /var/lib/apt/lists/* \
-    && usermod --shell /bin/zsh ubuntu \
-    && echo 'ubuntu ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/ubuntu \
-    && chmod 0440 /etc/sudoers.d/ubuntu
-
-# Install Claude Code as the dev user so it lands under /home/ubuntu/.local —
-# UID remap at start time chowns $HOME so the binary stays accessible.
-USER ubuntu
-RUN curl -fsSL https://claude.ai/install.sh | bash
-USER root
-
-WORKDIR /workspace
-
-ENV PYTHONPATH="/workspace"
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV TZ=Asia/Tokyo
-# uv creates .venv inside /workspace after postCreateCommand
-ENV PATH="/workspace/.venv/bin:$PATH"
-CH" in \
-        amd64) YAZI_ARCH=x86_64 ;; \
-        arm64) YAZI_ARCH=aarch64 ;; \
-        *) echo "Unsupported architecture: $ARCH" && exit 1 ;; \
-    esac \
-    && curl -fsSL "https://github.com/sxyazi/yazi/releases/latest/download/yazi-${YAZI_ARCH}-unknown-linux-musl.zip" -o /tmp/yazi.zip \
-    && unzip -q /tmp/yazi.zip -d /tmp/yazi \
-    && install /tmp/yazi/yazi-${YAZI_ARCH}-unknown-linux-musl/yazi /usr/local/bin/yazi \
-    && rm -rf /tmp/yazi.zip /tmp/yazi
+# Install GitHub CLI (gh) from the official apt repo
+RUN mkdir -p -m 755 /etc/apt/keyrings \
+    && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+       -o /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+    && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+       > /etc/apt/sources.list.d/github-cli.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends gh \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set zsh as default shell for root (kept so `docker exec -u root` sessions get zsh too)
 RUN chsh -s /bin/zsh
