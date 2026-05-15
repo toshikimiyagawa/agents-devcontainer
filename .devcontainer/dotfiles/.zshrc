@@ -117,6 +117,17 @@ export LESS='-R --quit-if-one-screen --no-init'
 export LESSHISTFILE=/dev/null # don't save less history
 
 # ==============================================================================
+# gh auth — first-run hint
+# ==============================================================================
+if ! gh auth status >/dev/null 2>&1; then
+  echo ""
+  echo "  gh is not authenticated. Run the following to log in:"
+  echo "  gh auth login -p https -h github.com -s repo,read:org -w"
+  echo "  Your token will persist across rebuilds via the devcontainer-gh-* volume."
+  echo ""
+fi
+
+# ==============================================================================
 # tmux auto-start
 # ==============================================================================
 if [[ -z "$TMUX" ]]; then

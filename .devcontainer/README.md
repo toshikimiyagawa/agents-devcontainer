@@ -26,13 +26,38 @@ colima start --cpu 4 --memory 8
 #### Windows (WSL2)
 Ubuntu 等の WSL2 ディストリビューション内で Docker Engine をインストールしてください。
 
-### 2. コンテナの起動
+### 2. ホストの git identity を環境変数にセット（推奨）
+
+コミットに正しい名前・メールが付くよう、ホスト側の `~/.zshrc` または `~/.bashrc` に追加してください。
+
+```bash
+export GIT_AUTHOR_NAME="Your Name"
+export GIT_AUTHOR_EMAIL="you@example.com"
+```
+
+未設定でも、コンテナ初回起動後に `gh auth login` を済ませれば GitHub アカウント情報から自動取得します。
+
+### 3. コンテナの起動
 
 VS Code の **Dev Containers: Reopen in Container** を実行するか、`devcontainer` CLI を使用します。
 
 ```bash
 devcontainer up --workspace-folder .
 devcontainer exec --workspace-folder . zsh
+```
+
+### 4. GitHub 認証（初回のみ）
+
+コンテナ内で以下を実行します。トークンは named volume に保存されるため、**rebuild 後も再認証は不要**です。
+
+```bash
+gh auth login -p https -h github.com -s repo,read:org -w
+```
+
+ログアウトしたい場合（volume を削除）:
+
+```bash
+docker volume rm devcontainer-gh-<devcontainerId>
 ```
 
 ## ツールセット

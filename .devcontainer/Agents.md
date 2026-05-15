@@ -19,9 +19,10 @@
   - 必要に応じて `sudo` がパスワードなしで利用可能。
 - **マウント**:
   - `/workspace`: プロジェクトルートをバインドマウント。
-  - `~/.gitconfig`, `~/.git-credentials`: ホストの設定を共有。
+  - `~/.gitconfig`, `~/.git-credentials`: **バインドマウントしない**。git 設定はコンテナ内の `/etc/gitconfig`（system レベル）で管理する（`postStartCommand` で書き込み）。ホストの gitconfig に含まれる OS 固有のパスがコンテナ内で壊れる問題を回避するため。
+  - `~/.gh-config`: named volume（`devcontainer-gh-<devcontainerId>`）でマウント。`GH_CONFIG_DIR=/home/ubuntu/.gh-config` で gh CLI がここを参照する。rebuild 後もトークンが維持され、初回のみ `gh auth login` を実行すればよい。
   - `~/.claude` は **ホストと共有しない**。`.devcontainer/dotfiles/.claude/` を symlink して、コンテナ専用の認証・履歴をワークスペース配下に隔離する（中身は gitignore 済み）。
-  - `initializeCommand` でマウント対象ファイル（.gitconfig 等）の存在と `dotfiles/.claude` ディレクトリの存在を保証すること。
+  - `initializeCommand` で `dotfiles/.claude`, `dotfiles/.gemini` ディレクトリの存在を保証すること。
 
 ## セットアップ自動化 (`postCreateCommand`)
 
@@ -32,7 +33,8 @@
   - `tmux`: TPM (Tmux Plugin Manager) をクローンし、プラグインを自動インストールすること。
   - `Python`: `uv sync` を使用して依存関係を解決すること。
 - **Git**:
-  - `postStartCommand` で `/workspace` を `safe.directory` に追加すること（`--system` 設定を推奨）。
+  - `postStartCommand` で `scripts/post-start.sh` を実行し、`/etc/gitconfig` に safe.directory、credential helper、ユーザー identity を設定すること。
+  - git identity は `remoteEnv` 経由でホストの `GIT_AUTHOR_NAME` / `GIT_AUTHOR_EMAIL` を転送する。未設定の場合は `gh api user` でフォールバック。
 
 ## 主要ツールスタック
 

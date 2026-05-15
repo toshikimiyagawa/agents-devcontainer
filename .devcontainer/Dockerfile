@@ -83,8 +83,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends sudo \
 
 # Install Claude Code as the dev user so it lands under /home/ubuntu/.local —
 # UID remap at start time chowns $HOME so the binary stays accessible.
+# Pre-create .gh-config so the named volume mount in devcontainer.json inherits
+# the correct ubuntu ownership (Docker sets root ownership on fresh volumes
+# before the first file is written unless the target directory already exists).
 USER ubuntu
-RUN curl -fsSL https://claude.ai/install.sh | bash
+RUN curl -fsSL https://claude.ai/install.sh | bash \
+    && mkdir -p /home/ubuntu/.gh-config
 USER root
 
 WORKDIR /workspace
