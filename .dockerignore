@@ -1,0 +1,9 @@
+# Keep build context minimal for Dockerfile.base.
+**/.git
+**/.DS_Store
+**/.fuse_hidden*
+**/node_modules
+.devcontainer/dotfiles/.claude
+.devcontainer/dotfiles/.gemini
+.devcontainer/dotfiles/.ssh
+.devcontainer/dotfiles/.config/gh

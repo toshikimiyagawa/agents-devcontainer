@@ -1,5 +1,5 @@
 {
-  "name": "AI Agent Dev Container",
+  "name": "AI Agent Dev Container (dogfood)",
 
   "build": {
     "context": "..",
@@ -9,53 +9,32 @@
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
   "workspaceFolder": "/workspace",
 
-  // Ensure dotfiles/.claude and dotfiles/.gemini exist on the host before the container
-  // starts so postCreateCommand symlinks have valid targets on first run.
+  // Ensure project-state dirs exist before agents-post-create creates symlinks.
   "initializeCommand": "mkdir -p \"${localWorkspaceFolder}/.devcontainer/dotfiles/.claude\" \"${localWorkspaceFolder}/.devcontainer/dotfiles/.gemini\"",
 
   "mounts": [
-    // Persist the gh OAuth token across rebuilds via a named volume scoped to this
-    // devcontainer. On first launch run `gh auth login` inside the container once;
-    // the token survives all subsequent rebuilds automatically.
+    // Persist gh OAuth token across rebuilds via a named volume scoped to this
+    // devcontainer. Run `gh auth login` once on first launch; token survives rebuilds.
     // To log out: docker volume rm devcontainer-gh-<devcontainerId>
     "source=devcontainer-gh-${devcontainerId},target=/home/ubuntu/.gh-config,type=volume"
   ],
 
   "remoteEnv": {
-    // Tell gh CLI to store config and credentials in the named volume above,
-    // keeping it isolated from ~/.config (which is symlinked to dotfiles).
     "GH_CONFIG_DIR": "/home/ubuntu/.gh-config",
-    // Trust mise config files in /workspace without interactive prompts.
     "MISE_TRUSTED_CONFIG_PATHS": "/workspace",
-    // Forward host git identity so commits are correctly attributed without
-    // mounting the host's ~/.gitconfig (which may contain host-specific paths).
-    // Set these in your host shell or ~/.zshrc / ~/.bashrc:
+    // Forward host git identity. Set in your host shell (e.g. ~/.zshrc):
     //   export GIT_AUTHOR_NAME="Your Name"
     //   export GIT_AUTHOR_EMAIL="you@example.com"
-    // If unset, post-start.sh falls back to `gh api user` when gh is authenticated.
+    // Falls back to `gh api user` when env is unset but gh is authenticated.
     "GIT_AUTHOR_NAME":     "${localEnv:GIT_AUTHOR_NAME}",
     "GIT_AUTHOR_EMAIL":    "${localEnv:GIT_AUTHOR_EMAIL}",
     "GIT_COMMITTER_NAME":  "${localEnv:GIT_AUTHOR_NAME}",
     "GIT_COMMITTER_EMAIL": "${localEnv:GIT_AUTHOR_EMAIL}"
   },
 
-  // Run as the non-root `ubuntu` user (provided by the Ubuntu 24.04+ base image)
-  // so files produced inside the container land with the host user's UID instead
-  // of root. updateRemoteUserUID defaults to true on Linux: the CLI rewrites the
-  // ubuntu user's UID/GID at start time to match the host and chowns $HOME. This
-  // is what makes bind-mounted files (.venv, generated artifacts, etc.) editable
-  // on the WSL host.
   "containerUser": "ubuntu",
-  "remoteUser": "ubuntu",
+  "remoteUser":    "ubuntu",
 
-  // Copy SSH keys from dotfiles and lock down permissions required by OpenSSH,
-  // symlink dotfiles into $HOME, and install tmux plugins via TPM on first launch.
-  // Uses $HOME (= /home/ubuntu at runtime) so the command stays user-agnostic.
-  // Python deps are intentionally NOT auto-synced — run `uv sync` manually per project.
-  "postCreateCommand": "cp -r /workspace/.devcontainer/dotfiles/.ssh \"$HOME/.ssh\" && chmod 700 \"$HOME/.ssh\" && chmod 600 \"$HOME/.ssh\"/* && ln -sfn /workspace/.devcontainer/dotfiles/.zshrc \"$HOME/.zshrc\" && ln -sfn /workspace/.devcontainer/dotfiles/.tmux.conf \"$HOME/.tmux.conf\" && ln -sfn /workspace/.devcontainer/dotfiles/.config \"$HOME/.config\" && rm -rf \"$HOME/.claude\" && ln -s /workspace/.devcontainer/dotfiles/.claude \"$HOME/.claude\" && rm -rf \"$HOME/.gemini\" && ln -s /workspace/.devcontainer/dotfiles/.gemini \"$HOME/.gemini\" && (test -d \"$HOME/.tmux/plugins/tpm\" || git clone --depth 1 https://github.com/tmux-plugins/tpm \"$HOME/.tmux/plugins/tpm\") && \"$HOME/.tmux/plugins/tpm/bin/install_plugins\"",
-
-  // Configure /etc/gitconfig (system-level) on every start:
-  // safe.directory, credential helper (in-container gh), and git identity.
-  // See .devcontainer/scripts/post-start.sh for details.
-  "postStartCommand": "bash /workspace/.devcontainer/scripts/post-start.sh"
+  "postCreateCommand": "agents-post-create",
+  "postStartCommand":  "agents-post-start"
 }

@@ -1,0 +1,122 @@
+FROM ubuntu:26.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV LANG=C.UTF-8
+
+# Install system tools required for AWS CLI, SSM plugin, and dev workflow
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    tzdata \
+    curl \
+    unzip \
+    git \
+    less \
+    groff \
+    jq \
+    make \
+    gcc \
+    libc6-dev \
+    ripgrep \
+    fd-find \
+    netcat-openbsd \
+    openssh-client \
+    zsh \
+    tmux \
+    neovim \
+    lazygit \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv (same mechanism as production Dockerfile)
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
+
+# Ubuntu base has no python preinstalled — let uv manage Python 3.12 (matches .python-version)
+RUN uv python install 3.12
+
+# Install Node.js (NodeSource) for gemini-cli and other AI tools
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install @google/gemini-cli and OpenSpec (spec-driven development) globally
+RUN npm install -g @google/gemini-cli @fission-ai/openspec
+
+# Install starship prompt
+RUN curl -fsSL https://starship.rs/install.sh | sh -s -- --yes
+
+# Install yazi (arch-aware: amd64 / arm64)
+RUN ARCH=$(dpkg --print-architecture) \
+    && case "$ARCH" in \
+        amd64) YAZI_ARCH=x86_64 ;; \
+        arm64) YAZI_ARCH=aarch64 ;; \
+        *) echo "Unsupported architecture: $ARCH" && exit 1 ;; \
+    esac \
+    && curl -fsSL "https://github.com/sxyazi/yazi/releases/latest/download/yazi-${YAZI_ARCH}-unknown-linux-musl.zip" -o /tmp/yazi.zip \
+    && unzip -q /tmp/yazi.zip -d /tmp/yazi \
+    && install /tmp/yazi/yazi-${YAZI_ARCH}-unknown-linux-musl/yazi /usr/local/bin/yazi \
+    && rm -rf /tmp/yazi.zip /tmp/yazi
+
+# Install GitHub CLI (gh) from the official apt repo
+RUN mkdir -p -m 755 /etc/apt/keyrings \
+    && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+       -o /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+    && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+       > /etc/apt/sources.list.d/github-cli.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends gh \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set zsh as default shell for root (kept so `docker exec -u root` sessions get zsh too)
+RUN chsh -s /bin/zsh
+
+# Configure the `ubuntu` user (UID/GID 1000, ships with the Ubuntu 24.04+ base
+# image) as the runtime user. devcontainer CLI's updateRemoteUserUID (default
+# true on Linux) rewrites the UID/GID at start time to match the host user and
+# chowns $HOME, so files created inside the container don't end up root-owned on
+# the WSL/Linux host.
+# sudo is needed so agents-post-start can write to /etc/gitconfig (--system).
+RUN apt-get update && apt-get install -y --no-install-recommends sudo \
+    && rm -rf /var/lib/apt/lists/* \
+    && usermod --shell /bin/zsh ubuntu \
+    && echo 'ubuntu ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/ubuntu \
+    && chmod 0440 /etc/sudoers.d/ubuntu
+
+# Install Claude Code as the dev user so it lands under /home/ubuntu/.local —
+# UID remap at start time chowns $HOME so the binary stays accessible.
+# Pre-create .gh-config so the named volume mount in devcontainer.json inherits
+# the correct ubuntu ownership.
+USER ubuntu
+RUN curl -fsSL https://claude.ai/install.sh | bash \
+    && mkdir -p /home/ubuntu/.gh-config
+USER root
+
+# --- Bake runtime scripts -----------------------------------------------------
+# Build context is the repo root (context: . in CI and devcontainer.json).
+COPY .devcontainer/scripts/agents-post-create /usr/local/bin/agents-post-create
+COPY .devcontainer/scripts/agents-post-start  /usr/local/bin/agents-post-start
+RUN chmod 0755 /usr/local/bin/agents-post-create /usr/local/bin/agents-post-start
+
+# --- Bake default dotfiles ----------------------------------------------------
+# Curated subset: .zshrc, .tmux.conf, .config (minus gh/).
+# Project-state dirs (.claude, .gemini, .ssh) are intentionally NOT baked.
+# Per-project overrides go in /workspace/.devcontainer/dotfiles/ and take
+# precedence via agents-post-create's layered symlink logic.
+COPY .devcontainer/dotfiles/.zshrc     /opt/agents/dotfiles/.zshrc
+COPY .devcontainer/dotfiles/.tmux.conf /opt/agents/dotfiles/.tmux.conf
+COPY .devcontainer/dotfiles/.config    /opt/agents/dotfiles/.config
+RUN rm -rf /opt/agents/dotfiles/.config/gh \
+ && chown -R root:root /opt/agents \
+ && find /opt/agents -type d -exec chmod 0755 {} + \
+ && find /opt/agents -type f -exec chmod 0644 {} +
+
+WORKDIR /workspace
+
+ENV PYTHONPATH="/workspace"
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV TZ=Asia/Tokyo
+ENV PATH="/workspace/.venv/bin:$PATH"
+
+LABEL org.opencontainers.image.source="https://github.com/toshikimiyagawa/agents-devcontainer" \
+      org.opencontainers.image.description="General-purpose AI Agent devcontainer base image (Claude Code, Gemini CLI, OpenSpec, uv, tmux, neovim, yazi)." \
+      org.opencontainers.image.licenses="MIT"

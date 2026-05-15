@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+# Runs once on container create (postCreateCommand).
+# Materializes dotfiles into $HOME by layering per-project overrides on top of
+# baked defaults. Safe to re-run.
+set -euo pipefail
+
+BAKED="/opt/agents/dotfiles"
+PROJECT="/workspace/.devcontainer/dotfiles"
+
+log() { printf '[agents-post-create] %s\n' "$*"; }
+
+# --- 1. Symlinked dotfiles ----------------------------------------------------
+# For each dotfile the base image ships, prefer the project override if it
+# exists, else fall back to the baked default.
+# .config is treated as a single override unit (replace, not merge).
+# To extend .zshrc: source /opt/agents/dotfiles/.zshrc then add overrides.
+link_one() {
+  local name="$1"
+  local target
+  if [[ -e "$PROJECT/$name" ]]; then
+    target="$PROJECT/$name"
+  elif [[ -e "$BAKED/$name" ]]; then
+    target="$BAKED/$name"
+  else
+    log "skip $name (no source)"
+    return 0
+  fi
+  rm -rf "$HOME/$name"
+  ln -sfn "$target" "$HOME/$name"
+  log "linked $name -> $target"
+}
+
+link_one ".zshrc"
+link_one ".tmux.conf"
+link_one ".config"
+
+# --- 2. Project-only state dirs (.claude, .gemini) ----------------------------
+# Runtime state: only in the project (gitignored), never baked into the image.
+for name in .claude .gemini; do
+  if [[ -d "$PROJECT/$name" ]]; then
+    rm -rf "$HOME/$name"
+    ln -s "$PROJECT/$name" "$HOME/$name"
+    log "linked $name -> $PROJECT/$name"
+  fi
+done
+
+# --- 3. SSH (copy, not symlink — OpenSSH requires strict permissions) ---------
+if [[ -d "$PROJECT/.ssh" ]] && compgen -G "$PROJECT/.ssh/*" >/dev/null 2>&1; then
+  rm -rf "$HOME/.ssh"
+  cp -r "$PROJECT/.ssh" "$HOME/.ssh"
+  chmod 700 "$HOME/.ssh"
+  find "$HOME/.ssh" -maxdepth 1 -type f -exec chmod 600 {} +
+  log "copied .ssh from project"
+else
+  log "skip .ssh (no keys in project dotfiles)"
+fi
+
+# --- 4. tmux plugin manager + plugins -----------------------------------------
+if [[ ! -d "$HOME/.tmux/plugins/tpm" ]]; then
+  git clone --depth 1 https://github.com/tmux-plugins/tpm "$HOME/.tmux/plugins/tpm"
+  log "cloned TPM"
+fi
+"$HOME/.tmux/plugins/tpm/bin/install_plugins" >/dev/null 2>&1 \
+  || log "warn: tpm install_plugins failed (non-fatal)"
+
+log "done"
