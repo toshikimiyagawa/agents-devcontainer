@@ -19,13 +19,14 @@
   - 必要に応じて `sudo` がパスワードなしで利用可能。
 - **マウント**:
   - `/workspace`: プロジェクトルートをバインドマウント。
-  - `~/.claude`, `~/.gitconfig`, `~/.git-credentials`: ホストの設定を共有。
-  - `initializeCommand` でマウント対象ファイル（.gitconfig 等）の存在を保証すること。
+  - `~/.gitconfig`, `~/.git-credentials`: ホストの設定を共有。
+  - `~/.claude` は **ホストと共有しない**。`.devcontainer/dotfiles/.claude/` を symlink して、コンテナ専用の認証・履歴をワークスペース配下に隔離する（中身は gitignore 済み）。
+  - `initializeCommand` でマウント対象ファイル（.gitconfig 等）の存在と `dotfiles/.claude` ディレクトリの存在を保証すること。
 
 ## セットアップ自動化 (`postCreateCommand`)
 
 - **Dotfiles**:
-  - `.devcontainer/dotfiles/` 内の `.zshrc`, `.tmux.conf`, `.config` を `$HOME` にシンボリックリンクすること。
+  - `.devcontainer/dotfiles/` 内の `.zshrc`, `.tmux.conf`, `.config`, `.claude` を `$HOME` にシンボリックリンクすること。
   - `.ssh` はパーミッションの制約（OpenSSH）があるため、コピーして `600/700` に設定すること。
 - **ツール設定**:
   - `tmux`: TPM (Tmux Plugin Manager) をクローンし、プラグインを自動インストールすること。
@@ -54,3 +55,4 @@
 - **AI**:
   - `Claude Code` (claude)
   - `Gemini CLI` (gemini)
+  - `OpenSpec` (openspec) — Spec-Driven Development フレームワーク。プロジェクト初期化は `openspec init --tools claude` を手動実行する。

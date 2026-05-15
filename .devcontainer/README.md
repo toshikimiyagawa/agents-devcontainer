@@ -10,6 +10,7 @@ Claude Code や Gemini CLI などのエージェントツールがプリイン�
 - **最新のエージェントツール**:
   - **Claude Code**: Anthropic によるターミナルベースの AI エージェント。
   - **Gemini CLI**: Google によるコードベース対応の AI エージェント。
+  - **OpenSpec**: AI コーディングアシスタント向けの Spec-Driven Development フレームワーク。
 - **モダンな開発ツール**: uv (Python), mise (Runtime manager), Neovim, Tmux, Lazygit, Yazi 等を同梱。
 
 ## セットアップ手順
@@ -39,6 +40,7 @@ devcontainer exec --workspace-folder . zsh
 ### AI エージェント
 - `claude` (Claude Code)
 - `gemini` (Gemini CLI)
+- `openspec` (OpenSpec — Spec-Driven Development)
 
 ### 開発ユーティリティ
 - `uv`: Python の高速なパッケージ管理・ランタイム管理。
