@@ -44,6 +44,13 @@ for name in .claude .gemini; do
   fi
 done
 
+# --- 2b. .zsh_history ---------------------------------------------------------
+# Persist shell history across rebuilds in the workspace (gitignored).
+touch "$PROJECT/.zsh_history"
+rm -f "$HOME/.zsh_history"
+ln -sf "$PROJECT/.zsh_history" "$HOME/.zsh_history"
+log "linked .zsh_history -> $PROJECT/.zsh_history"
+
 # --- 3. SSH (copy, not symlink — OpenSSH requires strict permissions) ---------
 if [[ -d "$PROJECT/.ssh" ]] && compgen -G "$PROJECT/.ssh/*" >/dev/null 2>&1; then
   rm -rf "$HOME/.ssh"

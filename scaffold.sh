@@ -39,7 +39,6 @@ cat > "$DC/devcontainer.json" <<JSON
 
   "remoteEnv": {
     "GH_CONFIG_DIR": "/home/ubuntu/.gh-config",
-    "MISE_TRUSTED_CONFIG_PATHS": "/workspace",
     "GIT_AUTHOR_NAME":     "\${localEnv:GIT_AUTHOR_NAME}",
     "GIT_AUTHOR_EMAIL":    "\${localEnv:GIT_AUTHOR_EMAIL}",
     "GIT_COMMITTER_NAME":  "\${localEnv:GIT_AUTHOR_NAME}",
@@ -60,6 +59,7 @@ dotfiles/.claude/
 dotfiles/.gemini/
 dotfiles/.config/gh/
 dotfiles/.ssh/
+dotfiles/.zsh_history
 GITIGNORE
 
 echo "Scaffolded $DC"
