@@ -1,0 +1,6 @@
+# Per-project agent state — keep local, never commit.
+dotfiles/.claude/
+dotfiles/.gemini/
+dotfiles/.config/gh/
+dotfiles/.ssh/
+dotfiles/.zsh_history
