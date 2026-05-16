@@ -1,0 +1,26 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scaffold.sh'
+      - 'tests/**'
+      - '.github/workflows/test.yml'
+  pull_request:
+    paths:
+      - 'scaffold.sh'
+      - 'tests/**'
+      - '.github/workflows/test.yml'
+
+jobs:
+  bats:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install bats-core
+        uses: bats-core/bats-action@3.0.0
+
+      - name: Run tests
+        run: bats tests/
