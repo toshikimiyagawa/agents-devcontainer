@@ -82,6 +82,12 @@ alias mkenv='python3 -m venv .venv && source .venv/bin/activate'
 alias activate='source .venv/bin/activate'
 
 # ==============================================================================
+# Aliases — AI agent tooling (opt-in per project)
+# ==============================================================================
+# Initialize OpenSpec for the current workspace (writes .openspec/ + AGENTS.md).
+alias setup-openspec='openspec init --tools claude'
+
+# ==============================================================================
 # Useful functions
 # ==============================================================================
 
