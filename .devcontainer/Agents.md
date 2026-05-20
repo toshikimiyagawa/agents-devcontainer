@@ -88,5 +88,6 @@ git identity は `remoteEnv` 経由でホストの `GIT_AUTHOR_NAME` / `GIT_AUTH
 ### AI・特定ツール
 - `Claude Code` (claude)
 - `Gemini CLI` (gemini)
-- `OpenSpec` (openspec) — Spec-Driven Development フレームワーク。プロジェクト初期化は `openspec init --tools claude` を手動実行する。
+- `OpenSpec` (openspec) — Spec-Driven Development フレームワーク。プロジェクト初期化は `setup-openspec`（= `openspec init --tools claude`）を手動実行する。
+- `Superpowers` — Claude Code plugin。`devcontainer up` には組み込まず、Claude 内で `/plugin install superpowers@claude-plugins-official` を実行して opt-in する。状態は `~/.claude/`（symlink 先 = `dotfiles/.claude/`）に永続化。
 - `GitHub CLI` (gh) — git 認証に使用。
