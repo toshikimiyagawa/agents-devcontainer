@@ -141,4 +141,4 @@ source /opt/agents/dotfiles/.zshrc
 export MY_VAR=...
 ```
 
-詳細な仕様については [Agents.md](./Agents.md) を参照してください。
+詳細な仕様については [.devcontainer/Agents.md](./.devcontainer/Agents.md) を参照してください。
