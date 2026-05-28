@@ -7,13 +7,17 @@ setup() {
   TARGET="$TMPDIR/myproject"
   mkdir -p "$TARGET"
 
+  # Allow local file:// protocol for submodule tests (must be set before any clone/push)
+  export GIT_CONFIG_GLOBAL="$TMPDIR/gitconfig"
+  git config --file "$GIT_CONFIG_GLOBAL" protocol.file.allow always
+
   # Create a local bare repo to act as ai-sdd-guide for submodule tests
   SDD_BARE="$TMPDIR/ai-sdd-guide.git"
   git init --bare "$SDD_BARE" >/dev/null 2>&1
 
   # Populate the bare repo with integration files
   SDD_WORK="$TMPDIR/sdd-work"
-  git -c protocol.file.allow=always clone "$SDD_BARE" "$SDD_WORK" >/dev/null 2>&1
+  git clone "$SDD_BARE" "$SDD_WORK" >/dev/null 2>&1
   mkdir -p "$SDD_WORK/integration/agents" "$SDD_WORK/integration/ci"
   echo "# CLAUDE.md example" > "$SDD_WORK/integration/CLAUDE.md.example"
   echo "# AGENTS.md example" > "$SDD_WORK/integration/AGENTS.md.example"
@@ -22,10 +26,6 @@ setup() {
   echo "name: sdd-check" > "$SDD_WORK/integration/ci/sdd-check.yml"
   (cd "$SDD_WORK" && git add -A && git commit -m "init" >/dev/null 2>&1)
   (cd "$SDD_WORK" && git push >/dev/null 2>&1)
-
-  # Allow local file:// protocol for submodule tests
-  export GIT_CONFIG_GLOBAL="$TMPDIR/gitconfig"
-  git config --file "$GIT_CONFIG_GLOBAL" protocol.file.allow always
 }
 
 teardown() {
