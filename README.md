@@ -13,6 +13,7 @@ Claude Code, Gemini CLI, Codex CLI などのエージェントツールがプリ
   - **Codex CLI**: OpenAI によるターミナルベースの AI エージェント。
   - **OpenSpec**: AI コーディングアシスタント向けの Spec-Driven Development フレームワーク。
 - **モダンな開発ツール**: uv (Python), Neovim, Tmux, Lazygit, Yazi 等を同梱。
+- **SDD (Spec-Driven Development) 統合**: scaffold 時に [ai-sdd-guide](https://github.com/toshikimiyagawa/ai-sdd-guide) を submodule として自動導入。
 - **ゼロフリクション認証**: `gh auth login` 一度でトークンが named volume に永続化。rebuild 後も再認証不要。
 
 ## 初回セットアップ（このリポジトリのメンテナ向け）
@@ -30,14 +31,22 @@ Claude Code, Gemini CLI, Codex CLI などのエージェントツールがプリ
 ### 方法 A: scaffold スクリプト（推奨）
 
 ```bash
-# プロジェクトディレクトリで実行
+# プロジェクトディレクトリで実行（git リポジトリ内で実行すると SDD も自動セットアップ）
 curl -fsSL https://raw.githubusercontent.com/toshikimiyagawa/agents-devcontainer/main/scaffold.sh | bash
 
 # バージョンを固定する場合
 AGENTS_DEVCONTAINER_TAG=v0.1.0 bash scaffold.sh
+
+# SDD セットアップをスキップする場合
+AGENTS_DEVCONTAINER_SDD=0 bash scaffold.sh
 ```
 
-生成される `.devcontainer/devcontainer.json` はそのまま VS Code / devcontainer CLI で使用可能。
+スクリプトは以下を行います:
+- `.devcontainer/` の生成（既に存在する場合はスキップ）
+- `ai-sdd-guide` を `vendor/ai-sdd-guide` に submodule として追加
+- integration ファイル（`CLAUDE.md`, `AGENTS.md`, `.claude/settings.json`, `.claude/agents/`, `.github/workflows/sdd-check.yml`）のコピー（既存ファイルは上書きしない）
+
+`.devcontainer` が既にあるリポジトリでも実行可能で、SDD セットアップのみ行われます。
 
 ### 方法 B: 手動（ツールを追加したい場合）
 
