@@ -95,6 +95,35 @@ gh auth login -p https -h github.com -s repo,read:org -w
 docker volume rm devcontainer-gh-<devcontainerId>
 ```
 
+## AI エージェントツールの有効化（opt-in）
+
+`devcontainer up` の自動化には含めていない（プロジェクトに副作用を持つため）。使うプロジェクトでだけ手動で有効化する。
+
+### OpenSpec
+
+Spec-Driven Development フレームワーク。コンテナ内で1回実行すれば `.openspec/` と Claude Code 用スラッシュコマンドが入る。
+
+```bash
+setup-openspec   # = openspec init --tools claude
+```
+
+### Superpowers (Claude Code plugin)
+
+Claude Code を起動してから、プロンプトで以下のスラッシュコマンドを実行する：
+
+```
+/plugin install superpowers@claude-plugins-official
+```
+
+別マーケットプレース版を使う場合：
+
+```
+/plugin marketplace add obra/superpowers-marketplace
+/plugin install superpowers@superpowers-marketplace
+```
+
+プラグイン状態は `~/.claude/`（= `.devcontainer/dotfiles/.claude/` への symlink、gitignore 済み）に保存されるため、rebuild 後も保持される。
+
 ## dotfiles のカスタマイズ
 
 `.devcontainer/dotfiles/` 内にファイルを置くと、イメージに焼き込まれたデフォルトを上書きできます。
