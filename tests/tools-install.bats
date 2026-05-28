@@ -147,3 +147,77 @@ YAML
   [ "$status" -eq 0 ]
   [ ! -f "$TMPDIR/npm.log" ]
 }
+
+# --- binary downloads ---------------------------------------------------------
+
+@test "downloads and installs binary (direct download)" {
+  cat > "$MOCK_BIN/install" << MOCK
+#!/bin/bash
+echo "\$*" >> "$TMPDIR/install.log"
+MOCK
+  chmod +x "$MOCK_BIN/install"
+
+  cat > "$MOCK_BIN/curl" << MOCK
+#!/bin/bash
+for arg in "\$@"; do
+  if [[ "\$prev" == "-o" ]]; then
+    echo '#!/bin/bash' > "\$arg"
+    echo 'echo mock-binary' >> "\$arg"
+    chmod +x "\$arg"
+  fi
+  prev="\$arg"
+done
+echo "\$*" >> "$TMPDIR/curl.log"
+MOCK
+  chmod +x "$MOCK_BIN/curl"
+
+  cat > "$WORKSPACE/.devcontainer/project-tools.yml" << 'YAML'
+binary:
+  - name: mytool
+    url: "https://example.com/mytool-linux"
+YAML
+  run bash "$SCRIPT" "$WORKSPACE"
+  [ "$status" -eq 0 ]
+  grep -q "example.com/mytool-linux" "$TMPDIR/curl.log"
+}
+
+@test "substitutes ARCH variables in binary URL" {
+  cat > "$MOCK_BIN/install" << MOCK
+#!/bin/bash
+echo "\$*" >> "$TMPDIR/install.log"
+MOCK
+  chmod +x "$MOCK_BIN/install"
+
+  cat > "$MOCK_BIN/curl" << MOCK
+#!/bin/bash
+for arg in "\$@"; do
+  if [[ "\$prev" == "-o" ]]; then
+    echo '#!/bin/bash' > "\$arg"
+    chmod +x "\$arg"
+  fi
+  prev="\$arg"
+done
+echo "\$*" >> "$TMPDIR/curl.log"
+MOCK
+  chmod +x "$MOCK_BIN/curl"
+
+  cat > "$WORKSPACE/.devcontainer/project-tools.yml" << 'YAML'
+binary:
+  - name: mytool
+    url: "https://example.com/mytool-${ARCH}-${ARCH_ALT}"
+YAML
+  run bash "$SCRIPT" "$WORKSPACE"
+  [ "$status" -eq 0 ]
+  # Verify architecture substitution happened (no literal ${ARCH} in URL)
+  ! grep -q '\${ARCH}' "$TMPDIR/curl.log"
+}
+
+@test "skips binary when section is empty" {
+  cat > "$WORKSPACE/.devcontainer/project-tools.yml" << 'YAML'
+apt:
+  - curl
+YAML
+  run bash "$SCRIPT" "$WORKSPACE"
+  [ "$status" -eq 0 ]
+  [ ! -f "$TMPDIR/curl.log" ]
+}

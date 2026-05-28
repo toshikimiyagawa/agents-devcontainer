@@ -43,3 +43,54 @@ if [[ -n "$npm_packages" ]]; then
   sudo npm install -g $npm_packages
   log "npm packages installed"
 fi
+
+# --- binary downloads ---------------------------------------------------------
+binary_count=$(yq -r '.binary // [] | length' "$TOOLS_FILE" 2>/dev/null || echo 0)
+if [[ "$binary_count" -gt 0 ]]; then
+  ARCH=$(dpkg --print-architecture 2>/dev/null || echo "amd64")
+  case "$ARCH" in
+    amd64) ARCH_ALT=x86_64 ;;
+    arm64) ARCH_ALT=aarch64 ;;
+    *)     ARCH_ALT="$ARCH" ;;
+  esac
+  export ARCH ARCH_ALT
+
+  for i in $(seq 0 $((binary_count - 1))); do
+    name=$(yq -r ".binary[$i].name" "$TOOLS_FILE")
+    url_template=$(yq -r ".binary[$i].url" "$TOOLS_FILE")
+    # Substitute architecture variables
+    url=$(echo "$url_template" | sed "s/\${ARCH_ALT}/$ARCH_ALT/g; s/\${ARCH}/$ARCH/g")
+
+    log "downloading binary: $name from $url"
+    tmpfile=$(mktemp)
+
+    curl -fsSL "$url" -o "$tmpfile"
+
+    if [[ "$url" == *.zip ]]; then
+      tmpdir=$(mktemp -d)
+      unzip -q "$tmpfile" -d "$tmpdir"
+      found=$(find "$tmpdir" -name "$name" -type f | head -1)
+      if [[ -n "$found" ]]; then
+        sudo install -m 0755 "$found" "/usr/local/bin/$name"
+      else
+        log "error: binary '$name' not found in zip archive"
+      fi
+      rm -rf "$tmpdir"
+    elif [[ "$url" == *.tar.gz || "$url" == *.tgz ]]; then
+      tmpdir=$(mktemp -d)
+      tar xzf "$tmpfile" -C "$tmpdir"
+      found=$(find "$tmpdir" -name "$name" -type f | head -1)
+      if [[ -n "$found" ]]; then
+        sudo install -m 0755 "$found" "/usr/local/bin/$name"
+      else
+        log "error: binary '$name' not found in tar archive"
+      fi
+      rm -rf "$tmpdir"
+    else
+      sudo install -m 0755 "$tmpfile" "/usr/local/bin/$name"
+    fi
+
+    rm -f "$tmpfile"
+    log "installed $name"
+  done
+fi
