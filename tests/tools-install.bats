@@ -288,3 +288,19 @@ YAML
   [ "$status" -eq 0 ]
   [[ "$output" != *"running post-install.sh"* ]]
 }
+
+@test "skips post-install.sh when not executable" {
+  cat > "$WORKSPACE/.devcontainer/project-tools.yml" << 'YAML'
+apt: []
+YAML
+  cat > "$WORKSPACE/.devcontainer/post-install.sh" << SCRIPT
+#!/bin/bash
+touch $TMPDIR/should-not-exist
+SCRIPT
+  # Not chmod +x — should be skipped
+
+  run bash "$SCRIPT" "$WORKSPACE"
+  [ "$status" -eq 0 ]
+  [ ! -f "$TMPDIR/should-not-exist" ]
+  [[ "$output" != *"running post-install.sh"* ]]
+}
