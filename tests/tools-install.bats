@@ -60,6 +60,13 @@ YAML
 }
 
 @test "skips apt when section is empty" {
+  # Mock pip since the YAML has pip packages
+  cat > "$MOCK_BIN/pip" << MOCK
+#!/bin/bash
+echo "\$*" >> "$TMPDIR/pip.log"
+MOCK
+  chmod +x "$MOCK_BIN/pip"
+
   cat > "$WORKSPACE/.devcontainer/project-tools.yml" << 'YAML'
 pip:
   - ruff
@@ -67,4 +74,76 @@ YAML
   run bash "$SCRIPT" "$WORKSPACE"
   [ "$status" -eq 0 ]
   [ ! -f "$TMPDIR/apt-get.log" ]
+}
+
+# --- pip packages -------------------------------------------------------------
+
+@test "installs pip packages" {
+  # Mock pip
+  cat > "$MOCK_BIN/pip" << MOCK
+#!/bin/bash
+echo "\$*" >> "$TMPDIR/pip.log"
+MOCK
+  chmod +x "$MOCK_BIN/pip"
+
+  cat > "$WORKSPACE/.devcontainer/project-tools.yml" << 'YAML'
+pip:
+  - awscli==1.32.0
+  - ruff
+YAML
+  run bash "$SCRIPT" "$WORKSPACE"
+  [ "$status" -eq 0 ]
+  grep -q "install awscli==1.32.0 ruff" "$TMPDIR/pip.log"
+}
+
+@test "skips pip when section is empty" {
+  cat > "$MOCK_BIN/pip" << MOCK
+#!/bin/bash
+echo "\$*" >> "$TMPDIR/pip.log"
+MOCK
+  chmod +x "$MOCK_BIN/pip"
+
+  cat > "$WORKSPACE/.devcontainer/project-tools.yml" << 'YAML'
+apt:
+  - curl
+YAML
+  run bash "$SCRIPT" "$WORKSPACE"
+  [ "$status" -eq 0 ]
+  [ ! -f "$TMPDIR/pip.log" ]
+}
+
+# --- npm packages -------------------------------------------------------------
+
+@test "installs npm packages" {
+  # Mock npm
+  cat > "$MOCK_BIN/npm" << MOCK
+#!/bin/bash
+echo "\$*" >> "$TMPDIR/npm.log"
+MOCK
+  chmod +x "$MOCK_BIN/npm"
+
+  cat > "$WORKSPACE/.devcontainer/project-tools.yml" << 'YAML'
+npm:
+  - prettier
+  - eslint@9
+YAML
+  run bash "$SCRIPT" "$WORKSPACE"
+  [ "$status" -eq 0 ]
+  grep -q "install -g prettier eslint@9" "$TMPDIR/npm.log"
+}
+
+@test "skips npm when section is empty" {
+  cat > "$MOCK_BIN/npm" << MOCK
+#!/bin/bash
+echo "\$*" >> "$TMPDIR/npm.log"
+MOCK
+  chmod +x "$MOCK_BIN/npm"
+
+  cat > "$WORKSPACE/.devcontainer/project-tools.yml" << 'YAML'
+apt:
+  - curl
+YAML
+  run bash "$SCRIPT" "$WORKSPACE"
+  [ "$status" -eq 0 ]
+  [ ! -f "$TMPDIR/npm.log" ]
 }

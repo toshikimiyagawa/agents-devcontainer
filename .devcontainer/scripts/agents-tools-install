@@ -25,3 +25,21 @@ if [[ -n "$apt_packages" ]]; then
   sudo rm -rf /var/lib/apt/lists/*
   log "apt packages installed"
 fi
+
+# --- pip packages -------------------------------------------------------------
+pip_packages=$(yq -r '.pip // [] | .[]' "$TOOLS_FILE" 2>/dev/null || true)
+if [[ -n "$pip_packages" ]]; then
+  log "installing pip packages: $pip_packages"
+  # shellcheck disable=SC2086
+  pip install $pip_packages
+  log "pip packages installed"
+fi
+
+# --- npm packages -------------------------------------------------------------
+npm_packages=$(yq -r '.npm // [] | .[]' "$TOOLS_FILE" 2>/dev/null || true)
+if [[ -n "$npm_packages" ]]; then
+  log "installing npm packages: $npm_packages"
+  # shellcheck disable=SC2086
+  sudo npm install -g $npm_packages
+  log "npm packages installed"
+fi
