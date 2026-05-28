@@ -94,3 +94,25 @@ if [[ "$binary_count" -gt 0 ]]; then
     log "installed $name"
   done
 fi
+
+# --- post_install commands ----------------------------------------------------
+post_count=$(yq -r '.post_install // [] | length' "$TOOLS_FILE" 2>/dev/null || echo 0)
+if [[ "$post_count" -gt 0 ]]; then
+  for i in $(seq 0 $((post_count - 1))); do
+    name=$(yq -r ".post_install[$i].name" "$TOOLS_FILE")
+    run_cmd=$(yq -r ".post_install[$i].run" "$TOOLS_FILE")
+    log "running post_install: $name"
+    (cd "$WORKSPACE" && eval "$run_cmd")
+    log "completed post_install: $name"
+  done
+fi
+
+# --- post-install.sh ----------------------------------------------------------
+POST_INSTALL_SH="$WORKSPACE/.devcontainer/post-install.sh"
+if [[ -x "$POST_INSTALL_SH" ]]; then
+  log "running post-install.sh"
+  (cd "$WORKSPACE" && "$POST_INSTALL_SH")
+  log "completed post-install.sh"
+fi
+
+log "done"

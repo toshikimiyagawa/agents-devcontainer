@@ -221,3 +221,70 @@ YAML
   [ "$status" -eq 0 ]
   [ ! -f "$TMPDIR/curl.log" ]
 }
+
+# --- post_install commands ----------------------------------------------------
+
+@test "runs post_install commands from YAML" {
+  cat > "$WORKSPACE/.devcontainer/project-tools.yml" << YAML
+post_install:
+  - name: create marker
+    run: |
+      touch $TMPDIR/post-install-marker
+YAML
+  run bash "$SCRIPT" "$WORKSPACE"
+  [ "$status" -eq 0 ]
+  [ -f "$TMPDIR/post-install-marker" ]
+}
+
+@test "runs multiple post_install commands in order" {
+  cat > "$WORKSPACE/.devcontainer/project-tools.yml" << YAML
+post_install:
+  - name: step one
+    run: |
+      echo "first" > $TMPDIR/order.log
+  - name: step two
+    run: |
+      echo "second" >> $TMPDIR/order.log
+YAML
+  run bash "$SCRIPT" "$WORKSPACE"
+  [ "$status" -eq 0 ]
+  run cat "$TMPDIR/order.log"
+  [ "${lines[0]}" = "first" ]
+  [ "${lines[1]}" = "second" ]
+}
+
+@test "skips post_install when section is empty" {
+  cat > "$WORKSPACE/.devcontainer/project-tools.yml" << 'YAML'
+apt:
+  - curl
+YAML
+  run bash "$SCRIPT" "$WORKSPACE"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"running post_install"* ]]
+}
+
+# --- post-install.sh ----------------------------------------------------------
+
+@test "runs post-install.sh when present" {
+  cat > "$WORKSPACE/.devcontainer/project-tools.yml" << 'YAML'
+apt: []
+YAML
+  cat > "$WORKSPACE/.devcontainer/post-install.sh" << SCRIPT
+#!/bin/bash
+touch $TMPDIR/post-install-sh-marker
+SCRIPT
+  chmod +x "$WORKSPACE/.devcontainer/post-install.sh"
+
+  run bash "$SCRIPT" "$WORKSPACE"
+  [ "$status" -eq 0 ]
+  [ -f "$TMPDIR/post-install-sh-marker" ]
+}
+
+@test "skips post-install.sh when not present" {
+  cat > "$WORKSPACE/.devcontainer/project-tools.yml" << 'YAML'
+apt: []
+YAML
+  run bash "$SCRIPT" "$WORKSPACE"
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"running post-install.sh"* ]]
+}
