@@ -7,9 +7,12 @@ setup() {
   TARGET="$TMPDIR/myproject"
   mkdir -p "$TARGET"
 
-  # Allow local file:// protocol for submodule tests (must be set before any clone/push)
-  export GIT_CONFIG_GLOBAL="$TMPDIR/gitconfig"
-  git config --file "$GIT_CONFIG_GLOBAL" protocol.file.allow always
+  # Allow local file:// protocol for submodule tests.
+  # Use GIT_CONFIG_COUNT to inject config without overriding the global gitconfig
+  # (which may contain user.name/user.email needed for commits in CI).
+  export GIT_CONFIG_COUNT=1
+  export GIT_CONFIG_KEY_0=protocol.file.allow
+  export GIT_CONFIG_VALUE_0=always
 
   # Create a local bare repo to act as ai-sdd-guide for submodule tests
   SDD_BARE="$TMPDIR/ai-sdd-guide.git"
@@ -24,7 +27,7 @@ setup() {
   echo '{"hooks":{}}' > "$SDD_WORK/integration/settings.json.example"
   echo "# sdd-reviewer" > "$SDD_WORK/integration/agents/sdd-reviewer.md"
   echo "name: sdd-check" > "$SDD_WORK/integration/ci/sdd-check.yml"
-  (cd "$SDD_WORK" && git add -A && git commit -m "init" >/dev/null 2>&1)
+  (cd "$SDD_WORK" && git add -A && git -c user.name=test -c user.email=test@test.com commit -m "init" >/dev/null 2>&1)
   (cd "$SDD_WORK" && git push >/dev/null 2>&1)
 }
 
@@ -34,7 +37,7 @@ teardown() {
 
 # Helper: init target as git repo so submodule works
 init_git_target() {
-  (cd "$TARGET" && git init >/dev/null 2>&1 && git commit --allow-empty -m "init" >/dev/null 2>&1)
+  (cd "$TARGET" && git init >/dev/null 2>&1 && git -c user.name=test -c user.email=test@test.com commit --allow-empty -m "init" >/dev/null 2>&1)
 }
 
 # --- devcontainer file generation ----------------------------------------------
