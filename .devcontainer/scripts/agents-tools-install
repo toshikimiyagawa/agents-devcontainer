@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Installs project-specific tools declared in .devcontainer/project-tools.yml.
+# Called by agents-post-create during container setup.
+# Safe to re-run (idempotent).
+set -euo pipefail
+
+WORKSPACE="${1:-/workspace}"
+TOOLS_FILE="$WORKSPACE/.devcontainer/project-tools.yml"
+
+log() { printf '[agents-tools-install] %s\n' "$*"; }
+
+if [[ ! -f "$TOOLS_FILE" ]]; then
+  log "no project-tools.yml found — skipping"
+  exit 0
+fi
+
+log "reading $TOOLS_FILE"
+
+# --- apt packages -------------------------------------------------------------
+apt_packages=$(yq -r '.apt // [] | .[]' "$TOOLS_FILE" 2>/dev/null || true)
+if [[ -n "$apt_packages" ]]; then
+  log "installing apt packages: $apt_packages"
+  # shellcheck disable=SC2086
+  sudo apt-get update && sudo apt-get install -y --no-install-recommends $apt_packages
+  sudo rm -rf /var/lib/apt/lists/*
+  log "apt packages installed"
+fi
