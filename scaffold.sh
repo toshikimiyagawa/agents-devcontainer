@@ -69,6 +69,36 @@ dotfiles/.ssh/
 dotfiles/.zsh_history
 GITIGNORE
 
+  cat > "$DC/project-tools.yml" << 'TOOLS'
+# Project-specific tools — installed automatically on devcontainer creation.
+# Uncomment or add entries as needed. Versions are optional (omit for latest).
+#
+# apt:
+#   - postgresql-client
+#   - redis-tools
+#
+# pip:
+#   - awscli==1.32.0
+#   - ruff
+#
+# npm:
+#   - prettier
+#   - eslint@9
+#
+# binary:
+#   - name: terraform
+#     url: "https://releases.hashicorp.com/terraform/1.8.0/terraform_1.8.0_linux_${ARCH}.zip"
+#   # Available variables: ${ARCH} (amd64|arm64), ${ARCH_ALT} (x86_64|aarch64)
+#
+# post_install:
+#   - name: setup config
+#     run: |
+#       mkdir -p ~/.config/mytool
+#       cp .devcontainer/config/mytool.toml ~/.config/mytool/
+#
+# For complex setup, you can also create .devcontainer/post-install.sh (must be executable).
+TOOLS
+
   echo "Scaffolded $DC"
 fi
 

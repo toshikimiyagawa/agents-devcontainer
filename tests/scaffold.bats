@@ -229,3 +229,23 @@ init_git_target() {
   # SDD should not be set up
   [ ! -d "$TARGET/vendor/ai-sdd-guide" ]
 }
+
+# --- project-tools.yml --------------------------------------------------------
+
+@test "generates project-tools.yml" {
+  bash "$SCAFFOLD" "$TARGET"
+  [ -f "$TARGET/.devcontainer/project-tools.yml" ]
+}
+
+@test "project-tools.yml has comment header" {
+  bash "$SCAFFOLD" "$TARGET"
+  head -1 "$TARGET/.devcontainer/project-tools.yml" | grep -q "^#"
+}
+
+@test "skips project-tools.yml when .devcontainer already exists" {
+  mkdir -p "$TARGET/.devcontainer"
+  init_git_target
+  run env AGENTS_SDD_GUIDE_URL="$SDD_BARE" bash "$SCAFFOLD" "$TARGET"
+  [ "$status" -eq 0 ]
+  [ ! -f "$TARGET/.devcontainer/project-tools.yml" ]
+}
