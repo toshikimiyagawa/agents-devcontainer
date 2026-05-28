@@ -88,5 +88,6 @@ git identity は `remoteEnv` 経由でホストの `GIT_AUTHOR_NAME` / `GIT_AUTH
 ### AI・特定ツール
 - `Claude Code` (claude)
 - `Gemini CLI` (gemini)
+- `Codex CLI` (codex) — OpenAI によるターミナルベースの AI エージェント。
 - `OpenSpec` (openspec) — Spec-Driven Development フレームワーク。プロジェクト初期化は `openspec init --tools claude` を手動実行する。
 - `GitHub CLI` (gh) — git 認証に使用。

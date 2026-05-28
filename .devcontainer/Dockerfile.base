@@ -37,8 +37,8 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
-# Install @google/gemini-cli and OpenSpec (spec-driven development) globally
-RUN npm install -g @google/gemini-cli @fission-ai/openspec
+# Install @google/gemini-cli, Codex CLI, and OpenSpec (spec-driven development) globally
+RUN npm install -g @google/gemini-cli @openai/codex @fission-ai/openspec
 
 # Install starship prompt
 RUN curl -fsSL https://starship.rs/install.sh | sh -s -- --yes
@@ -118,5 +118,5 @@ ENV TZ=Asia/Tokyo
 ENV PATH="/workspace/.venv/bin:$PATH"
 
 LABEL org.opencontainers.image.source="https://github.com/toshikimiyagawa/agents-devcontainer" \
-      org.opencontainers.image.description="General-purpose AI Agent devcontainer base image (Claude Code, Gemini CLI, OpenSpec, uv, tmux, neovim, yazi)." \
+      org.opencontainers.image.description="General-purpose AI Agent devcontainer base image (Claude Code, Gemini CLI, Codex CLI, OpenSpec, uv, tmux, neovim, yazi)." \
       org.opencontainers.image.licenses="MIT"
