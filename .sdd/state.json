@@ -1,6 +1,5 @@
 {
-  "feature": "sdd-normalization",
-  "tier": 0,
-  "phase": "implement",
-  "justification": "bugfix: snap yq is wrong package, align with test.yml"
+  "feature": null,
+  "tier": null,
+  "phase": null
 }
