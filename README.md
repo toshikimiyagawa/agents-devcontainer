@@ -11,7 +11,7 @@ Claude Code, Gemini CLI, Codex CLI などのエージェントツールがプリ
   - **Claude Code**: Anthropic によるターミナルベースの AI エージェント。
   - **Gemini CLI**: Google によるコードベース対応の AI エージェント。
   - **Codex CLI**: OpenAI によるターミナルベースの AI エージェント。
-  - **OpenSpec**: AI コーディングアシスタント向けの Spec-Driven Development フレームワーク。
+  - **ai-sdd-guide**: Spec-Driven Development (SDD) フレームワーク。scaffold.sh が自動で組み込む。
 - **モダンな開発ツール**: uv (Python), Neovim, Tmux, Lazygit, Yazi 等を同梱。
 - **SDD (Spec-Driven Development) 統合**: scaffold 時に [ai-sdd-guide](https://github.com/toshikimiyagawa/ai-sdd-guide) を submodule として自動導入。
 - **ゼロフリクション認証**: `gh auth login` 一度でトークンが named volume に永続化。rebuild 後も再認証不要。
@@ -108,13 +108,13 @@ docker volume rm devcontainer-gh-<devcontainerId>
 
 `devcontainer up` の自動化には含めていない（プロジェクトに副作用を持つため）。使うプロジェクトでだけ手動で有効化する。
 
-### OpenSpec
+### Spec-Driven Development (SDD)
 
-Spec-Driven Development フレームワーク。コンテナ内で1回実行すれば `.openspec/` と Claude Code 用スラッシュコマンドが入る。
+ai-sdd-guide による SDD フレームワーク。`scaffold.sh` 実行時に git submodule として自動配置される。
 
-```bash
-setup-openspec   # = openspec init --tools claude
-```
+- ルール: `vendor/ai-sdd-guide/rules/`
+- ドキュメント（日本語）: `vendor/ai-sdd-guide/docs/`
+- テンプレート: `vendor/ai-sdd-guide/templates/`
 
 ### Superpowers (Claude Code plugin)
 
