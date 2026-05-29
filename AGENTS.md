@@ -14,6 +14,11 @@ Read these before any work:
 - Hooks: `integration/settings.json.example` を `.claude/settings.json` に取り込む。
 - Subagents: `integration/agents/` を `.claude/agents/` に取り込む。
 
+## docs/superpowers/ の扱い
+
+`docs/superpowers/specs/` と `docs/superpowers/plans/` はフィーチャーの設計・実装記録。
+**PR マージ前に必ずコミットすること。** finishing-a-development-branch の PR 作成ステップで未追跡の `docs/superpowers/` ファイルがあれば、自動的に `git add docs/superpowers/` してコミットしてから push する。
+
 ## テスト
 
 ```bash
