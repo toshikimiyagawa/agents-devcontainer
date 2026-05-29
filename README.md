@@ -42,7 +42,10 @@ AGENTS_DEVCONTAINER_SDD=0 bash scaffold.sh
 ```
 
 スクリプトは以下を行います:
+- `vendor/agents-devcontainer` を submodule として追加（git リポジトリの場合）
 - `.devcontainer/` の生成（既に存在する場合はスキップ）
+- `devcontainer.project.json` の生成（プロジェクト固有の設定用）
+- `merge.sh` で `devcontainer.json` を生成
 - `ai-sdd-guide` を `vendor/ai-sdd-guide` に submodule として追加
 - integration ファイル（`CLAUDE.md`, `AGENTS.md`, `.claude/settings.json`, `.claude/agents/`, `.github/workflows/sdd-check.yml`）のコピー（既存ファイルは上書きしない）
 
@@ -57,6 +60,68 @@ AGENTS_DEVCONTAINER_SDD=0 bash scaffold.sh
 FROM ghcr.io/toshikimiyagawa/agents-devcontainer:latest
 RUN sudo apt-get update && sudo apt-get install -y postgresql-client
 ```
+
+## devcontainer 設定の更新
+
+agents-devcontainer 本体が更新された際に、消費プロジェクトの設定を取り込む方法。
+
+### devcontainer.json の更新
+
+```bash
+# agents-devcontainer の最新を取得
+git submodule update --remote vendor/agents-devcontainer
+
+# devcontainer.json を再生成
+vendor/agents-devcontainer/scaffold/merge.sh
+
+# 差分確認 → コミット
+git diff .devcontainer/devcontainer.json
+git add .devcontainer/devcontainer.json
+git commit -m "chore(devcontainer): update to latest agents-devcontainer"
+```
+
+### プロジェクト固有の設定
+
+`.devcontainer/devcontainer.project.json` にプロジェクトの差分のみを記述します。
+このファイルは `merge.sh` によって `devcontainer.json` にマージされます。
+
+```json
+{
+  "name": "my-project",
+  "mounts": [
+    "source=my-db,target=/var/lib/postgresql/data,type=volume"
+  ],
+  "remoteEnv": {
+    "MY_API_KEY": "${localEnv:MY_API_KEY}"
+  }
+}
+```
+
+マージルール：
+- `mounts`: base の配列 + project の配列（結合）
+- `remoteEnv`: キー単位のマージ（project の値が優先）
+- `image` / `build`: project が優先
+- `postCreateCommand` / `postStartCommand`: project が優先（なければ base の `agents-post-create` / `agents-post-start`）
+
+### SDD 統合ファイルの更新
+
+```bash
+vendor/agents-devcontainer/scaffold/sdd-update.sh
+```
+
+`.claude/agents/` と `.github/workflows/sdd-check.yml` を上書き更新します。
+`CLAUDE.md`, `AGENTS.md`, `.claude/settings.json` は保護対象で上書きしません（diff のみ表示）。
+
+### 既存プロジェクトからの移行手順
+
+agents-devcontainer を submodule として使っていない既存プロジェクトの移行手順：
+
+1. submodule を追加: `git submodule add https://github.com/toshikimiyagawa/agents-devcontainer.git vendor/agents-devcontainer`
+2. project.json を作成: `echo '{"name":"my-project"}' > .devcontainer/devcontainer.project.json`
+3. 既存の `.devcontainer/devcontainer.json` と `vendor/agents-devcontainer/scaffold/devcontainer.base.json` を diff し、プロジェクト固有の設定を確認する
+4. 確認した差分を `.devcontainer/devcontainer.project.json` に記述する
+5. `vendor/agents-devcontainer/scaffold/merge.sh` を実行して `devcontainer.json` を再生成・確認
+6. コミット
 
 ## このリポジトリ自体の起動（dogfood）
 

@@ -21,15 +21,48 @@ DC="$TARGET/.devcontainer"
 SDD="${AGENTS_DEVCONTAINER_SDD:-1}"
 SDD_URL="${AGENTS_SDD_GUIDE_URL:-https://github.com/toshikimiyagawa/ai-sdd-guide.git}"
 SDD_DIR="$TARGET/vendor/ai-sdd-guide"
+ADC_URL="${AGENTS_DEVCONTAINER_URL:-https://github.com/toshikimiyagawa/agents-devcontainer.git}"
+ADC_DIR="$TARGET/vendor/agents-devcontainer"
 
-# --- devcontainer setup --------------------------------------------------------
+# --- agents-devcontainer submodule (git only) ---------------------------------
+
+if git -C "$TARGET" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  if [[ -e "$ADC_DIR" ]]; then
+    echo "SKIP: $ADC_DIR already exists. Skipping agents-devcontainer submodule add." >&2
+  else
+    git -C "$TARGET" submodule add "$ADC_URL" vendor/agents-devcontainer
+    echo "Added agents-devcontainer submodule at vendor/agents-devcontainer"
+  fi
+fi
+
+# --- devcontainer setup -------------------------------------------------------
 
 if [[ -e "$DC" ]]; then
   echo "SKIP: $DC already exists. Skipping devcontainer setup." >&2
 else
   mkdir -p "$DC/dotfiles/.claude" "$DC/dotfiles/.gemini"
 
-  cat > "$DC/devcontainer.json" <<JSON
+  # Generate devcontainer.project.json (project-specific overrides)
+  if [[ "$TAG" != "latest" ]]; then
+    cat > "$DC/devcontainer.project.json" <<JSON
+{
+  "name": "$(basename "$TARGET")",
+  "image": "ghcr.io/toshikimiyagawa/agents-devcontainer:${TAG}"
+}
+JSON
+  else
+    cat > "$DC/devcontainer.project.json" <<JSON
+{
+  "name": "$(basename "$TARGET")"
+}
+JSON
+  fi
+
+  # Generate devcontainer.json: via merge.sh if submodule is present, else static fallback
+  if [[ -x "$ADC_DIR/scaffold/merge.sh" ]]; then
+    "$ADC_DIR/scaffold/merge.sh" "$TARGET"
+  else
+    cat > "$DC/devcontainer.json" <<JSON
 {
   "name": "$(basename "$TARGET")",
 
@@ -59,6 +92,7 @@ else
   "postStartCommand":  "agents-post-start"
 }
 JSON
+  fi
 
   cat > "$DC/.gitignore" <<'GITIGNORE'
 # Per-project agent state — keep local, never commit.
@@ -160,6 +194,10 @@ echo "  1. Open $TARGET in VS Code -> 'Dev Containers: Reopen in Container'"
 echo "     OR: devcontainer up --workspace-folder $TARGET"
 echo "  2. Inside the container, run: gh auth login -p https -h github.com -s repo,read:org -w"
 echo "     (token persists across rebuilds via the named volume)"
+echo ""
+echo "To update devcontainer config from agents-devcontainer:"
+echo "  git submodule update --remote vendor/agents-devcontainer"
+echo "  vendor/agents-devcontainer/scaffold/merge.sh"
 echo ""
 echo "To override dotfiles, drop files into $DC/dotfiles/ (e.g., .zshrc, .tmux.conf, .config/)."
 echo "To extend .zshrc rather than replace it: source /opt/agents/dotfiles/.zshrc at the top."
