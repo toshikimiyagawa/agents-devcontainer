@@ -1,0 +1,3 @@
+[submodule "vendor/ai-sdd-guide"]
+	path = vendor/ai-sdd-guide
+	url = https://github.com/toshikimiyagawa/ai-sdd-guide.git

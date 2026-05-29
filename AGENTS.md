@@ -1,12 +1,20 @@
-# Development Guidelines
+# Project Guidelines (Claude Code)
 
-## ブランチ
+This project follows Spec-Driven Development (SDD). The canonical rules live in the submodule.
+Read these before any work:
 
-変更は必ずブランチを切って作業すること。main への直接コミットは行わない。
+@vendor/ai-sdd-guide/rules/core.md
+@vendor/ai-sdd-guide/rules/workflow.md
+@vendor/ai-sdd-guide/rules/subagents.md
+@vendor/ai-sdd-guide/rules/conventions.md
+
+- 設計フェーズ (spec/plan/tasks/verify) は Claude のみ。superpowers と subagent を使う。
+- 実装は他agentでも可。`specs/<feature>/` を契約として厳守する。
+- 人間向け解説: `vendor/ai-sdd-guide/docs/`  ／ 雛形: `vendor/ai-sdd-guide/templates/`
+- Hooks: `integration/settings.json.example` を `.claude/settings.json` に取り込む。
+- Subagents: `integration/agents/` を `.claude/agents/` に取り込む。
 
 ## テスト
-
-変更に対応するテストを書いてから実装すること。テストは必ずローカルで実行して通ることを確認してから PR を作成する。
 
 ```bash
 # 実行方法（要 bats-core: brew install bats-core）
