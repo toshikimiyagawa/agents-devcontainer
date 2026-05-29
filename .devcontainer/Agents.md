@@ -89,6 +89,6 @@ git identity は `remoteEnv` 経由でホストの `GIT_AUTHOR_NAME` / `GIT_AUTH
 - `Claude Code` (claude)
 - `Gemini CLI` (gemini)
 - `Codex CLI` (codex) — OpenAI によるターミナルベースの AI エージェント。
-- `OpenSpec` (openspec) — Spec-Driven Development フレームワーク。プロジェクト初期化は `setup-openspec`（= `openspec init --tools claude`）を手動実行する。
+- `ai-sdd-guide` — Spec-Driven Development フレームワーク。`scaffold.sh` が git submodule として `vendor/ai-sdd-guide` に配置する。ルール: `vendor/ai-sdd-guide/rules/`、ドキュメント: `vendor/ai-sdd-guide/docs/`。
 - `Superpowers` — Claude Code plugin。`devcontainer up` には組み込まず、Claude 内で `/plugin install superpowers@claude-plugins-official` を実行して opt-in する。状態は `~/.claude/`（symlink 先 = `dotfiles/.claude/`）に永続化。
 - `GitHub CLI` (gh) — git 認証に使用。
