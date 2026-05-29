@@ -1,0 +1,20 @@
+{
+  "image": "ghcr.io/toshikimiyagawa/agents-devcontainer:latest",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+  "workspaceFolder": "/workspace",
+  "initializeCommand": "mkdir -p \"${localWorkspaceFolder}/.devcontainer/dotfiles/.claude\" \"${localWorkspaceFolder}/.devcontainer/dotfiles/.gemini\"",
+  "mounts": [
+    "source=devcontainer-gh-${devcontainerId},target=/home/ubuntu/.gh-config,type=volume"
+  ],
+  "remoteEnv": {
+    "GH_CONFIG_DIR": "/home/ubuntu/.gh-config",
+    "GIT_AUTHOR_NAME": "${localEnv:GIT_AUTHOR_NAME}",
+    "GIT_AUTHOR_EMAIL": "${localEnv:GIT_AUTHOR_EMAIL}",
+    "GIT_COMMITTER_NAME": "${localEnv:GIT_AUTHOR_NAME}",
+    "GIT_COMMITTER_EMAIL": "${localEnv:GIT_AUTHOR_EMAIL}"
+  },
+  "containerUser": "ubuntu",
+  "remoteUser": "ubuntu",
+  "postCreateCommand": "agents-post-create",
+  "postStartCommand": "agents-post-start"
+}
