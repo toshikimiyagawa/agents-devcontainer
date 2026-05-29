@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+# Installs project-specific tools declared in .devcontainer/project-tools.yml.
+# Called by agents-post-create during container setup.
+# Safe to re-run (idempotent).
+set -euo pipefail
+
+WORKSPACE="${1:-/workspace}"
+TOOLS_FILE="$WORKSPACE/.devcontainer/project-tools.yml"
+
+log() { printf '[agents-tools-install] %s\n' "$*"; }
+
+if [[ ! -f "$TOOLS_FILE" ]]; then
+  log "no project-tools.yml found — skipping"
+  exit 0
+fi
+
+log "reading $TOOLS_FILE"
+
+# --- apt packages -------------------------------------------------------------
+apt_packages=$(yq -r '.apt // [] | .[]' "$TOOLS_FILE" 2>/dev/null || true)
+if [[ -n "$apt_packages" ]]; then
+  log "installing apt packages: $apt_packages"
+  # shellcheck disable=SC2086
+  sudo apt-get update && sudo apt-get install -y --no-install-recommends $apt_packages
+  sudo rm -rf /var/lib/apt/lists/* || true
+  log "apt packages installed"
+fi
+
+# --- pip packages -------------------------------------------------------------
+pip_packages=$(yq -r '.pip // [] | .[]' "$TOOLS_FILE" 2>/dev/null || true)
+if [[ -n "$pip_packages" ]]; then
+  log "installing pip packages: $pip_packages"
+  # shellcheck disable=SC2086
+  pip install $pip_packages
+  log "pip packages installed"
+fi
+
+# --- npm packages -------------------------------------------------------------
+npm_packages=$(yq -r '.npm // [] | .[]' "$TOOLS_FILE" 2>/dev/null || true)
+if [[ -n "$npm_packages" ]]; then
+  log "installing npm packages: $npm_packages"
+  # shellcheck disable=SC2086
+  sudo npm install -g $npm_packages
+  log "npm packages installed"
+fi
+
+# --- binary downloads ---------------------------------------------------------
+binary_count=$(yq -r '.binary // [] | length' "$TOOLS_FILE" 2>/dev/null || echo 0)
+if [[ "$binary_count" -gt 0 ]]; then
+  ARCH=$(dpkg --print-architecture 2>/dev/null || echo "amd64")
+  case "$ARCH" in
+    amd64) ARCH_ALT=x86_64 ;;
+    arm64) ARCH_ALT=aarch64 ;;
+    *)     ARCH_ALT="$ARCH" ;;
+  esac
+  export ARCH ARCH_ALT
+
+  for i in $(seq 0 $((binary_count - 1))); do
+    name=$(yq -r ".binary[$i].name" "$TOOLS_FILE")
+    url_template=$(yq -r ".binary[$i].url" "$TOOLS_FILE")
+    # Substitute architecture variables
+    url=$(echo "$url_template" | sed "s/\${ARCH_ALT}/$ARCH_ALT/g; s/\${ARCH}/$ARCH/g")
+
+    log "downloading binary: $name from $url"
+    tmpfile=$(mktemp)
+
+    curl -fsSL "$url" -o "$tmpfile"
+
+    if [[ "$url" == *.zip ]]; then
+      tmpdir=$(mktemp -d)
+      unzip -q "$tmpfile" -d "$tmpdir"
+      found=$(find "$tmpdir" -name "$name" -type f | head -1)
+      if [[ -n "$found" ]]; then
+        sudo install -m 0755 "$found" "/usr/local/bin/$name"
+      else
+        log "error: binary '$name' not found in zip archive"
+      fi
+      rm -rf "$tmpdir"
+    elif [[ "$url" == *.tar.gz || "$url" == *.tgz ]]; then
+      tmpdir=$(mktemp -d)
+      tar xzf "$tmpfile" -C "$tmpdir"
+      found=$(find "$tmpdir" -name "$name" -type f | head -1)
+      if [[ -n "$found" ]]; then
+        sudo install -m 0755 "$found" "/usr/local/bin/$name"
+      else
+        log "error: binary '$name' not found in tar archive"
+      fi
+      rm -rf "$tmpdir"
+    else
+      sudo install -m 0755 "$tmpfile" "/usr/local/bin/$name"
+    fi
+
+    rm -f "$tmpfile"
+    log "installed $name"
+  done
+fi
+
+# --- post_install commands ----------------------------------------------------
+post_count=$(yq -r '.post_install // [] | length' "$TOOLS_FILE" 2>/dev/null || echo 0)
+if [[ "$post_count" -gt 0 ]]; then
+  for i in $(seq 0 $((post_count - 1))); do
+    name=$(yq -r ".post_install[$i].name" "$TOOLS_FILE")
+    run_cmd=$(yq -r ".post_install[$i].run" "$TOOLS_FILE")
+    log "running post_install: $name"
+    (cd "$WORKSPACE" && eval "$run_cmd")
+    log "completed post_install: $name"
+  done
+fi
+
+# --- post-install.sh ----------------------------------------------------------
+POST_INSTALL_SH="$WORKSPACE/.devcontainer/post-install.sh"
+if [[ -x "$POST_INSTALL_SH" ]]; then
+  log "running post-install.sh"
+  (cd "$WORKSPACE" && "$POST_INSTALL_SH")
+  log "completed post-install.sh"
+fi
+
+log "done"

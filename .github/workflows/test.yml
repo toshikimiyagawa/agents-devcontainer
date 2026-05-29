@@ -6,11 +6,13 @@ on:
     paths:
       - 'scaffold.sh'
       - 'tests/**'
+      - '.devcontainer/scripts/**'
       - '.github/workflows/test.yml'
   pull_request:
     paths:
       - 'scaffold.sh'
       - 'tests/**'
+      - '.devcontainer/scripts/**'
       - '.github/workflows/test.yml'
 
 jobs:
@@ -21,6 +23,11 @@ jobs:
 
       - name: Install bats-core
         uses: bats-core/bats-action@3.0.0
+
+      - name: Install yq
+        run: |
+          sudo curl -fsSL https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 \
+            -o /usr/local/bin/yq && sudo chmod +x /usr/local/bin/yq
 
       - name: Run tests
         run: bats tests/

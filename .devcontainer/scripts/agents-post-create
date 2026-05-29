@@ -70,4 +70,9 @@ fi
 "$HOME/.tmux/plugins/tpm/bin/install_plugins" >/dev/null 2>&1 \
   || log "warn: tpm install_plugins failed (non-fatal)"
 
+# --- 5. Project-specific tools ------------------------------------------------
+if command -v agents-tools-install &>/dev/null; then
+  agents-tools-install /workspace
+fi
+
 log "done"

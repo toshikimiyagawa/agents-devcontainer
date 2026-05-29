@@ -43,6 +43,10 @@ RUN npm install -g @google/gemini-cli @openai/codex @fission-ai/openspec
 # Install starship prompt
 RUN curl -fsSL https://starship.rs/install.sh | sh -s -- --yes
 
+# Install yq (YAML processor for project-tools.yml)
+RUN curl -fsSL "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_$(dpkg --print-architecture)" \
+    -o /usr/local/bin/yq && chmod 0755 /usr/local/bin/yq
+
 # Install yazi (arch-aware: amd64 / arm64)
 RUN ARCH=$(dpkg --print-architecture) \
     && case "$ARCH" in \
@@ -94,7 +98,8 @@ USER root
 # Build context is the repo root (context: . in CI and devcontainer.json).
 COPY .devcontainer/scripts/agents-post-create /usr/local/bin/agents-post-create
 COPY .devcontainer/scripts/agents-post-start  /usr/local/bin/agents-post-start
-RUN chmod 0755 /usr/local/bin/agents-post-create /usr/local/bin/agents-post-start
+COPY .devcontainer/scripts/agents-tools-install /usr/local/bin/agents-tools-install
+RUN chmod 0755 /usr/local/bin/agents-post-create /usr/local/bin/agents-post-start /usr/local/bin/agents-tools-install
 
 # --- Bake default dotfiles ----------------------------------------------------
 # Curated subset: .zshrc, .tmux.conf, .config (minus gh/).
