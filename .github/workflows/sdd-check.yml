@@ -33,7 +33,9 @@ jobs:
         uses: bats-core/bats-action@3.0.0
 
       - name: Install yq
-        run: sudo snap install yq
+        run: |
+          sudo curl -fsSL https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 \
+            -o /usr/local/bin/yq && sudo chmod +x /usr/local/bin/yq
 
       - name: Tests
         run: bats tests/
