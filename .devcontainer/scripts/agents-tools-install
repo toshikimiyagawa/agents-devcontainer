@@ -22,7 +22,7 @@ if [[ -n "$apt_packages" ]]; then
   log "installing apt packages: $apt_packages"
   # shellcheck disable=SC2086
   sudo apt-get update && sudo apt-get install -y --no-install-recommends $apt_packages
-  sudo rm -rf /var/lib/apt/lists/*
+  sudo rm -rf /var/lib/apt/lists/* || true
   log "apt packages installed"
 fi
 
