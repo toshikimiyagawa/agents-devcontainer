@@ -1,0 +1,41 @@
+name: SDD Check
+on:
+  pull_request:
+
+jobs:
+  sdd:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Spec gate
+        run: |
+          base="${{ github.event.pull_request.base.sha }}"
+          changed="$(git diff --name-only "$base"...HEAD)"
+          src="$(echo "$changed" | grep -vE '^(docs/|specs/|\.sdd/|vendor/|\.claude/|\.github/|\.devcontainer/|\.[^/]+$|.*\.md$)' || true)"
+
+          labels='${{ toJSON(github.event.pull_request.labels.*.name) }}'
+          if echo "$labels" | grep -q 'sdd:tier-0'; then
+            echo "Tier 0 — spec gate skipped."; exit 0
+          fi
+          if [ -z "$src" ]; then
+            echo "No source changes — spec gate skipped."; exit 0
+          fi
+          if ! ls specs/*/spec.md >/dev/null 2>&1; then
+            echo "::error::Source changed but no specs/<feature>/spec.md found. Add a spec or label the PR 'sdd:tier-0'."
+            exit 1
+          fi
+          echo "Spec present."
+
+      - name: Install bats-core
+        uses: bats-core/bats-action@3.0.0
+
+      - name: Install yq
+        run: |
+          sudo curl -fsSL https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 \
+            -o /usr/local/bin/yq && sudo chmod +x /usr/local/bin/yq
+
+      - name: Tests
+        run: bats tests/
