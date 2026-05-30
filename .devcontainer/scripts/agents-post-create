@@ -36,7 +36,7 @@ link_one ".config"
 
 # --- 2. Project-only state dirs (.claude, .gemini) ----------------------------
 # Runtime state: only in the project (gitignored), never baked into the image.
-for name in .claude .gemini; do
+for name in .claude .gemini .codex; do
   if [[ -d "$PROJECT/$name" ]]; then
     rm -rf "$HOME/$name"
     ln -s "$PROJECT/$name" "$HOME/$name"

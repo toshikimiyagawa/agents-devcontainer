@@ -33,7 +33,7 @@ fi
 if [[ -e "$DC" ]]; then
   echo "SKIP: $DC already exists. Skipping devcontainer setup." >&2
 else
-  mkdir -p "$DC/dotfiles/.claude" "$DC/dotfiles/.gemini"
+  mkdir -p "$DC/dotfiles/.claude" "$DC/dotfiles/.gemini" "$DC/dotfiles/.codex"
 
   # Generate devcontainer.project.json (project-specific overrides)
   if [[ "$TAG" != "latest" ]]; then
@@ -64,7 +64,7 @@ JSON
   "workspaceMount": "source=\${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
   "workspaceFolder": "/workspace",
 
-  "initializeCommand": "mkdir -p \"\${localWorkspaceFolder}/.devcontainer/dotfiles/.claude\" \"\${localWorkspaceFolder}/.devcontainer/dotfiles/.gemini\"",
+  "initializeCommand": "mkdir -p \"\${localWorkspaceFolder}/.devcontainer/dotfiles/.claude\" \"\${localWorkspaceFolder}/.devcontainer/dotfiles/.gemini\" \"\${localWorkspaceFolder}/.devcontainer/dotfiles/.codex\"",
 
   "mounts": [
     "source=devcontainer-gh-\${devcontainerId},target=/home/ubuntu/.gh-config,type=volume"
@@ -91,6 +91,7 @@ JSON
 # Per-project agent state — keep local, never commit.
 dotfiles/.claude/
 dotfiles/.gemini/
+dotfiles/.codex/
 dotfiles/.config/gh/
 dotfiles/.ssh/
 dotfiles/.zsh_history
