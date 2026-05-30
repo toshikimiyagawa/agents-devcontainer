@@ -19,6 +19,27 @@ Read these before any work:
 `docs/superpowers/specs/` と `docs/superpowers/plans/` はフィーチャーの設計・実装記録。
 **PR マージ前に必ずコミットすること。** finishing-a-development-branch の PR 作成ステップで未追跡の `docs/superpowers/` ファイルがあれば、自動的に `git add docs/superpowers/` してコミットしてから push する。
 
+## サブモジュール管理の注意
+
+`vendor/ai-sdd-guide` はこのリポジトリ自身の開発用サブモジュール。消費プロジェクトには不要。
+
+**消費プロジェクトでサブモジュールを更新する際は `--recursive` を使わないこと。**
+`--recursive` を使うと `vendor/agents-devcontainer/vendor/ai-sdd-guide` が意図せず初期化される。
+
+```bash
+# 正しい更新方法（消費プロジェクト側）
+git submodule update --init
+git submodule update --remote vendor/agents-devcontainer
+
+# NG
+git submodule update --init --recursive  # ai-sdd-guide がネストして取り込まれる
+```
+
+このリポジトリ自身で `vendor/ai-sdd-guide` を使う場合は明示的にパス指定する：
+```bash
+git submodule update --init vendor/ai-sdd-guide
+```
+
 ## テスト
 
 ```bash
