@@ -1,15 +1,11 @@
 #!/usr/bin/env bash
-# Scaffold a minimal .devcontainer/ that consumes the agents-devcontainer base image,
-# and optionally set up ai-sdd-guide (Spec-Driven Development) via git submodule.
+# Scaffold a minimal .devcontainer/ that consumes the agents-devcontainer base image.
 #
 # Usage:
 #   bash scaffold.sh [TARGET_DIR]       # defaults to current directory
 #
 # To pin a specific version:
 #   AGENTS_DEVCONTAINER_TAG=v0.1.0 bash scaffold.sh ~/code/myproject
-#
-# To skip SDD setup:
-#   AGENTS_DEVCONTAINER_SDD=0 bash scaffold.sh ~/code/myproject
 #
 # Remote usage:
 #   curl -fsSL https://raw.githubusercontent.com/toshikimiyagawa/agents-devcontainer/main/scaffold.sh | bash
@@ -18,9 +14,6 @@ set -euo pipefail
 TARGET="${1:-$PWD}"
 TAG="${AGENTS_DEVCONTAINER_TAG:-latest}"
 DC="$TARGET/.devcontainer"
-SDD="${AGENTS_DEVCONTAINER_SDD:-1}"
-SDD_URL="${AGENTS_SDD_GUIDE_URL:-https://github.com/toshikimiyagawa/ai-sdd-guide.git}"
-SDD_DIR="$TARGET/vendor/ai-sdd-guide"
 ADC_URL="${AGENTS_DEVCONTAINER_URL:-https://github.com/toshikimiyagawa/agents-devcontainer.git}"
 ADC_DIR="$TARGET/vendor/agents-devcontainer"
 
@@ -134,58 +127,6 @@ GITIGNORE
 TOOLS
 
   echo "Scaffolded $DC"
-fi
-
-# --- SDD (ai-sdd-guide) setup -------------------------------------------------
-
-if [[ "$SDD" == "0" ]]; then
-  echo "SKIP: SDD setup disabled (AGENTS_DEVCONTAINER_SDD=0)." >&2
-elif ! git -C "$TARGET" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  echo "SKIP: $TARGET is not a git repository. SDD setup requires git." >&2
-  echo "      Run 'git init' first, then re-run this script to set up SDD." >&2
-else
-  # Submodule
-  if [[ -e "$SDD_DIR" ]]; then
-    echo "SKIP: $SDD_DIR already exists. Skipping submodule add." >&2
-  else
-    git -C "$TARGET" submodule add "$SDD_URL" vendor/ai-sdd-guide
-    echo "Added ai-sdd-guide submodule at vendor/ai-sdd-guide"
-  fi
-
-  # Integration files (copy only if not already present)
-  INTEGRATION="$SDD_DIR/integration"
-  if [[ -d "$INTEGRATION" ]]; then
-    if [[ ! -f "$TARGET/CLAUDE.md" ]] && [[ -f "$INTEGRATION/CLAUDE.md.example" ]]; then
-      cp "$INTEGRATION/CLAUDE.md.example" "$TARGET/CLAUDE.md"
-      echo "Copied CLAUDE.md"
-    fi
-
-    if [[ ! -f "$TARGET/AGENTS.md" ]] && [[ -f "$INTEGRATION/AGENTS.md.example" ]]; then
-      cp "$INTEGRATION/AGENTS.md.example" "$TARGET/AGENTS.md"
-      echo "Copied AGENTS.md"
-    fi
-
-    if [[ ! -f "$TARGET/.claude/settings.json" ]] && [[ -f "$INTEGRATION/settings.json.example" ]]; then
-      mkdir -p "$TARGET/.claude"
-      cp "$INTEGRATION/settings.json.example" "$TARGET/.claude/settings.json"
-      echo "Copied .claude/settings.json"
-    fi
-
-    if [[ ! -d "$TARGET/.claude/agents" ]] && [[ -d "$INTEGRATION/agents" ]]; then
-      mkdir -p "$TARGET/.claude"
-      cp -r "$INTEGRATION/agents" "$TARGET/.claude/agents"
-      echo "Copied .claude/agents/"
-    fi
-
-    if [[ ! -f "$TARGET/.github/workflows/sdd-check.yml" ]] && [[ -f "$INTEGRATION/ci/sdd-check.yml" ]]; then
-      mkdir -p "$TARGET/.github/workflows"
-      cp "$INTEGRATION/ci/sdd-check.yml" "$TARGET/.github/workflows/sdd-check.yml"
-      echo "Copied .github/workflows/sdd-check.yml"
-    fi
-  fi
-
-  echo ""
-  echo "SDD (ai-sdd-guide) setup complete."
 fi
 
 echo ""

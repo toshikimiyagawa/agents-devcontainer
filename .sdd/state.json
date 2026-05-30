@@ -1,5 +1,5 @@
 {
-  "feature": "devcontainer-update",
+  "feature": "decouple-sdd",
   "tier": 2,
-  "phase": "done"
+  "phase": "implement"
 }
