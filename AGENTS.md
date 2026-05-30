@@ -1,23 +1,19 @@
-# Project Guidelines (Claude Code)
+# Project Guidelines (AGENTS.md)
 
-This project follows Spec-Driven Development (SDD). The canonical rules live in the submodule.
-Read these before any work:
+This project uses Spec-Driven Development (SDD). As an implementation agent your job is to
+implement the **frozen spec** — not to design.
 
-@vendor/ai-sdd-guide/rules/core.md
-@vendor/ai-sdd-guide/rules/workflow.md
-@vendor/ai-sdd-guide/rules/subagents.md
-@vendor/ai-sdd-guide/rules/conventions.md
+## Before coding
+1. Find the active spec under `specs/<feature>/` (`spec.md` / `plan.md` / `tasks.md`).
+2. Implement exactly the tasks in `tasks.md`. Every acceptance criterion in `spec.md` must map to a test.
 
-- 設計フェーズ (spec/plan/tasks/verify) は Claude のみ。superpowers と subagent を使う。
-- 実装は他agentでも可。`specs/<feature>/` を契約として厳守する。
-- 人間向け解説: `vendor/ai-sdd-guide/docs/`  ／ 雛形: `vendor/ai-sdd-guide/templates/`
-- Hooks: `integration/settings.json.example` を `.claude/settings.json` に取り込む。
-- Subagents: `integration/agents/` を `.claude/agents/` に取り込む。
+## Hard rules (CI enforces these)
+- Do NOT change behavior beyond the approved tasks.
+- Every acceptance criterion must have a passing test.
+- If the spec is wrong, ambiguous, or insufficient: STOP and leave a note for a human. Do not redesign.
+- Do not modify files under `specs/` to fit your implementation.
 
-## docs/superpowers/ の扱い
-
-`docs/superpowers/specs/` と `docs/superpowers/plans/` はフィーチャーの設計・実装記録。
-**PR マージ前に必ずコミットすること。** finishing-a-development-branch の PR 作成ステップで未追跡の `docs/superpowers/` ファイルがあれば、自動的に `git add docs/superpowers/` してコミットしてから push する。
+詳細: `vendor/ai-sdd-guide/rules/` (英語) ／ `vendor/ai-sdd-guide/docs/` (日本語)
 
 ## サブモジュール管理の注意
 

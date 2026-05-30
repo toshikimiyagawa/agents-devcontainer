@@ -63,6 +63,11 @@ init_git_target() {
   [ -d "$TARGET/.devcontainer/dotfiles/.gemini" ]
 }
 
+@test "creates dotfiles/.codex directory" {
+  bash "$SCAFFOLD" "$TARGET"
+  [ -d "$TARGET/.devcontainer/dotfiles/.codex" ]
+}
+
 # --- devcontainer.json content -------------------------------------------------
 
 @test "devcontainer.json is valid JSON" {
@@ -124,6 +129,11 @@ init_git_target() {
 @test ".gitignore includes dotfiles/.gemini/" {
   bash "$SCAFFOLD" "$TARGET"
   grep -q "dotfiles/.gemini/" "$TARGET/.devcontainer/.gitignore"
+}
+
+@test ".gitignore includes dotfiles/.codex/" {
+  bash "$SCAFFOLD" "$TARGET"
+  grep -q "dotfiles/.codex/" "$TARGET/.devcontainer/.gitignore"
 }
 
 @test ".gitignore includes dotfiles/.zsh_history" {
