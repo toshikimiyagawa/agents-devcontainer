@@ -11,9 +11,8 @@ Claude Code, Gemini CLI, Codex CLI などのエージェントツールがプリ
   - **Claude Code**: Anthropic によるターミナルベースの AI エージェント。
   - **Gemini CLI**: Google によるコードベース対応の AI エージェント。
   - **Codex CLI**: OpenAI によるターミナルベースの AI エージェント。
-  - **ai-sdd-guide**: Spec-Driven Development (SDD) フレームワーク。scaffold.sh が自動で組み込む。
+  - **ai-sdd-guide**: Spec-Driven Development (SDD) フレームワーク。プロジェクトに個別に導入する。
 - **モダンな開発ツール**: uv (Python), Neovim, Tmux, Lazygit, Yazi 等を同梱。
-- **SDD (Spec-Driven Development) 統合**: scaffold 時に [ai-sdd-guide](https://github.com/toshikimiyagawa/ai-sdd-guide) を submodule として自動導入。
 - **ゼロフリクション認証**: `gh auth login` 一度でトークンが named volume に永続化。rebuild 後も再認証不要。
 
 ## 初回セットアップ（このリポジトリのメンテナ向け）
@@ -31,14 +30,11 @@ Claude Code, Gemini CLI, Codex CLI などのエージェントツールがプリ
 ### 方法 A: scaffold スクリプト（推奨）
 
 ```bash
-# プロジェクトディレクトリで実行（git リポジトリ内で実行すると SDD も自動セットアップ）
+# プロジェクトディレクトリで実行
 curl -fsSL https://raw.githubusercontent.com/toshikimiyagawa/agents-devcontainer/main/scaffold.sh | bash
 
 # バージョンを固定する場合
 AGENTS_DEVCONTAINER_TAG=v0.1.0 bash scaffold.sh
-
-# SDD セットアップをスキップする場合
-AGENTS_DEVCONTAINER_SDD=0 bash scaffold.sh
 ```
 
 スクリプトは以下を行います:
@@ -46,10 +42,8 @@ AGENTS_DEVCONTAINER_SDD=0 bash scaffold.sh
 - `.devcontainer/` の生成（既に存在する場合はスキップ）
 - `devcontainer.project.json` の生成（プロジェクト固有の設定用）
 - `merge.sh` で `devcontainer.json` を生成
-- `ai-sdd-guide` を `vendor/ai-sdd-guide` に submodule として追加
-- integration ファイル（`CLAUDE.md`, `AGENTS.md`, `.claude/settings.json`, `.claude/agents/`, `.github/workflows/sdd-check.yml`）のコピー（既存ファイルは上書きしない）
 
-`.devcontainer` が既にあるリポジトリでも実行可能で、SDD セットアップのみ行われます。
+`.devcontainer` が既にあるリポジトリでも実行可能です。
 
 ### 方法 B: 手動（ツールを追加したい場合）
 
@@ -105,8 +99,11 @@ git commit -m "chore(devcontainer): update to latest agents-devcontainer"
 
 ### SDD 統合ファイルの更新
 
+SDD ファイルの更新は ai-sdd-guide submodule を直接更新して `integration/update.sh` を実行します:
+
 ```bash
-vendor/agents-devcontainer/scaffold/sdd-update.sh
+git submodule update --remote vendor/ai-sdd-guide
+vendor/ai-sdd-guide/integration/update.sh
 ```
 
 `.claude/agents/` と `.github/workflows/sdd-check.yml` を上書き更新します。
@@ -175,7 +172,15 @@ docker volume rm devcontainer-gh-<devcontainerId>
 
 ### Spec-Driven Development (SDD)
 
-ai-sdd-guide による SDD フレームワーク。`scaffold.sh` 実行時に git submodule として自動配置される。
+ai-sdd-guide による SDD フレームワーク。agents-devcontainer とは独立して導入する。
+
+```bash
+git submodule add https://github.com/toshikimiyagawa/ai-sdd-guide.git vendor/ai-sdd-guide
+vendor/ai-sdd-guide/integration/update.sh
+```
+
+> **Note:** `git submodule update --init` で `vendor/agents-devcontainer` を取得する際、`--recursive` は不要です。
+> `vendor/agents-devcontainer` 内部に ai-sdd-guide が含まれていますが、消費プロジェクトには影響しません。
 
 - ルール: `vendor/ai-sdd-guide/rules/`
 - ドキュメント（日本語）: `vendor/ai-sdd-guide/docs/`
