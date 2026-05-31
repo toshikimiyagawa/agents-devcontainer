@@ -101,19 +101,6 @@ COPY .devcontainer/scripts/agents-post-start  /usr/local/bin/agents-post-start
 COPY .devcontainer/scripts/agents-tools-install /usr/local/bin/agents-tools-install
 RUN chmod 0755 /usr/local/bin/agents-post-create /usr/local/bin/agents-post-start /usr/local/bin/agents-tools-install
 
-# --- Bake default dotfiles ----------------------------------------------------
-# Curated subset: .zshrc, .tmux.conf, .config (minus gh/).
-# Project-state dirs (.claude, .gemini, .ssh) are intentionally NOT baked.
-# Per-project overrides go in /workspace/.devcontainer/dotfiles/ and take
-# precedence via agents-post-create's layered symlink logic.
-COPY .devcontainer/dotfiles/.zshrc     /opt/agents/dotfiles/.zshrc
-COPY .devcontainer/dotfiles/.tmux.conf /opt/agents/dotfiles/.tmux.conf
-COPY .devcontainer/dotfiles/.config    /opt/agents/dotfiles/.config
-RUN rm -rf /opt/agents/dotfiles/.config/gh \
- && chown -R root:root /opt/agents \
- && find /opt/agents -type d -exec chmod 0755 {} + \
- && find /opt/agents -type f -exec chmod 0644 {} +
-
 WORKDIR /workspace
 
 ENV PYTHONPATH="/workspace"

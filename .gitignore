@@ -1,12 +1,7 @@
-# gh CLI config directory — contains OAuth tokens (hosts.yml) at runtime.
-# gh is configured via GH_CONFIG_DIR=/home/ubuntu/.gh-config (named volume),
-# so this dotfiles directory is not used by gh inside the container.
-.devcontainer/dotfiles/.config/gh/
-
 # OS / filesystem noise
 .DS_Store
 **/.DS_Store
-.devcontainer/dotfiles/.fuse_hidden*
+dotfiles/.fuse_hidden*
 
 # Editor swap files
 *.swp
