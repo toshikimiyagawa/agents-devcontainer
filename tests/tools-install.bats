@@ -60,12 +60,12 @@ YAML
 }
 
 @test "skips apt when section is empty" {
-  # Mock pip since the YAML has pip packages
-  cat > "$MOCK_BIN/pip" << MOCK
+  # Mock uv since the YAML has pip packages
+  cat > "$MOCK_BIN/uv" << MOCK
 #!/bin/bash
-echo "\$*" >> "$TMPDIR/pip.log"
+echo "\$*" >> "$TMPDIR/uv.log"
 MOCK
-  chmod +x "$MOCK_BIN/pip"
+  chmod +x "$MOCK_BIN/uv"
 
   cat > "$WORKSPACE/.devcontainer/project-tools.yml" << 'YAML'
 pip:
@@ -79,12 +79,12 @@ YAML
 # --- pip packages -------------------------------------------------------------
 
 @test "installs pip packages" {
-  # Mock pip
-  cat > "$MOCK_BIN/pip" << MOCK
+  # Mock uv
+  cat > "$MOCK_BIN/uv" << MOCK
 #!/bin/bash
-echo "\$*" >> "$TMPDIR/pip.log"
+echo "\$*" >> "$TMPDIR/uv.log"
 MOCK
-  chmod +x "$MOCK_BIN/pip"
+  chmod +x "$MOCK_BIN/uv"
 
   cat > "$WORKSPACE/.devcontainer/project-tools.yml" << 'YAML'
 pip:
@@ -93,15 +93,15 @@ pip:
 YAML
   run bash "$SCRIPT" "$WORKSPACE"
   [ "$status" -eq 0 ]
-  grep -q "install awscli==1.32.0 ruff" "$TMPDIR/pip.log"
+  grep -q "pip install --system awscli==1.32.0 ruff" "$TMPDIR/uv.log"
 }
 
 @test "skips pip when section is empty" {
-  cat > "$MOCK_BIN/pip" << MOCK
+  cat > "$MOCK_BIN/uv" << MOCK
 #!/bin/bash
-echo "\$*" >> "$TMPDIR/pip.log"
+echo "\$*" >> "$TMPDIR/uv.log"
 MOCK
-  chmod +x "$MOCK_BIN/pip"
+  chmod +x "$MOCK_BIN/uv"
 
   cat > "$WORKSPACE/.devcontainer/project-tools.yml" << 'YAML'
 apt:
@@ -109,7 +109,7 @@ apt:
 YAML
   run bash "$SCRIPT" "$WORKSPACE"
   [ "$status" -eq 0 ]
-  [ ! -f "$TMPDIR/pip.log" ]
+  [ ! -f "$TMPDIR/uv.log" ]
 }
 
 # --- npm packages -------------------------------------------------------------
