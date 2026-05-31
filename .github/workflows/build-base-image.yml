@@ -8,7 +8,7 @@ on:
       - '.devcontainer/Dockerfile.base'
       - '.devcontainer/scripts/agents-post-create'
       - '.devcontainer/scripts/agents-post-start'
-      - '.devcontainer/dotfiles/**'
+      - 'dotfiles/**'
       - '.github/workflows/build-base-image.yml'
       - '.dockerignore'
   workflow_dispatch: {}
