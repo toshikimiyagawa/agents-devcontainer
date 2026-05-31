@@ -31,7 +31,7 @@ pip_packages=$(yq -r '.pip // [] | .[]' "$TOOLS_FILE" 2>/dev/null || true)
 if [[ -n "$pip_packages" ]]; then
   log "installing pip packages: $pip_packages"
   # shellcheck disable=SC2086
-  uv pip install --system $pip_packages
+  VIRTUAL_ENV=/opt/agents/tools-venv uv pip install $pip_packages
   log "pip packages installed"
 fi
 

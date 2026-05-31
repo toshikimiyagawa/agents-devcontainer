@@ -93,7 +93,7 @@ pip:
 YAML
   run bash "$SCRIPT" "$WORKSPACE"
   [ "$status" -eq 0 ]
-  grep -q "pip install --system awscli==1.32.0 ruff" "$TMPDIR/uv.log"
+  grep -q "pip install awscli==1.32.0 ruff" "$TMPDIR/uv.log"
 }
 
 @test "skips pip when section is empty" {
