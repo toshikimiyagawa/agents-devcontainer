@@ -33,20 +33,24 @@ fi
 if [[ -e "$DC" ]]; then
   echo "SKIP: $DC already exists. Skipping devcontainer setup." >&2
 else
+  mkdir -p "$DC"
+
   # dotfiles at project root (gitignore-by-default model)
   DOTFILES="$TARGET/dotfiles"
   mkdir -p "$DOTFILES/.claude" "$DOTFILES/.gemini" "$DOTFILES/.codex" "$DOTFILES/.ssh"
   printf '*\n!.gitignore\n' > "$DOTFILES/.gitignore"
 
   # Copy base dotfiles from vendor and force-commit
-  if [[ -d "$ADC_DIR/dotfiles" ]]; then
-    cp "$ADC_DIR/dotfiles/.zshrc"     "$DOTFILES/.zshrc"
-    cp "$ADC_DIR/dotfiles/.tmux.conf" "$DOTFILES/.tmux.conf"
-    cp -r "$ADC_DIR/dotfiles/.config" "$DOTFILES/.config"
-    git -C "$TARGET" add "$DOTFILES/.gitignore"
-    git -C "$TARGET" add -f "$DOTFILES/.zshrc" "$DOTFILES/.tmux.conf" "$DOTFILES/.config"
-  else
-    git -C "$TARGET" add "$DOTFILES/.gitignore"
+  if git -C "$TARGET" rev-parse --git-dir >/dev/null 2>&1; then
+    if [[ -d "$ADC_DIR/dotfiles" ]]; then
+      cp "$ADC_DIR/dotfiles/.zshrc"     "$DOTFILES/.zshrc"
+      cp "$ADC_DIR/dotfiles/.tmux.conf" "$DOTFILES/.tmux.conf"
+      cp -r "$ADC_DIR/dotfiles/.config" "$DOTFILES/.config"
+      git -C "$TARGET" add "$DOTFILES/.gitignore"
+      git -C "$TARGET" add -f "$DOTFILES/.zshrc" "$DOTFILES/.tmux.conf" "$DOTFILES/.config"
+    else
+      git -C "$TARGET" add "$DOTFILES/.gitignore"
+    fi
   fi
 
   # Generate devcontainer.project.json (project-specific overrides)
