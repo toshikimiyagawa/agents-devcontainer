@@ -27,6 +27,7 @@ for agent-specific instructions (Claude Code / Codex / Gemini CLI).
 - Do not modify files under `specs/` to fit an implementation.
 - Do not expand scope beyond approved tasks.
 - Do not disable SDD hooks or CI.
+- **Never push directly to `main`.** Always use a feature branch and open a PR.
 
 Human-facing docs: `vendor/ai-sdd-guide/docs/`
 Templates: `vendor/ai-sdd-guide/templates/`
