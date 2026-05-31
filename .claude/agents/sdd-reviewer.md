@@ -10,7 +10,8 @@ Steps:
 1. Read `specs/<feature>/spec.md`, `plan.md`, `tasks.md`.
 2. Read the diff (`git diff` against the base branch).
 3. For each acceptance criterion, confirm a corresponding test exists and passes.
-4. Flag any change that is out of scope of the approved tasks.
-5. Report: PASS/FAIL, a checklist of acceptance criteria (met/unmet), out-of-scope changes, and missing tests.
+4. For each changed file/region in the diff, confirm it is required by an approved task in `tasks.md`. Anything not traceable to an approved task is out-of-scope.
+5. Inspect PR review comments and the commits that followed them. For every piece of review feedback that was absorbed, confirm the absorbed change maps to an existing approved acceptance criterion. Suggestions that expanded scope without a spec update are findings — the `receiving-code-review` discipline was bypassed (scope creep should have escalated to a new spec, not been silently merged).
+6. Report: PASS/FAIL, a checklist of acceptance criteria (met/unmet), out-of-scope changes, scope-creep findings from absorbed review feedback, and missing tests.
 
 Be strict: out-of-spec changes are findings, not acceptable. Do not propose redesigns.
