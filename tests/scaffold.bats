@@ -20,6 +20,11 @@ setup() {
   mkdir -p "$ADC_WORK/scaffold"
   cp "$BATS_TEST_DIRNAME/../scaffold/devcontainer.base.json" "$ADC_WORK/scaffold/"
   cp "$BATS_TEST_DIRNAME/../scaffold/merge.sh"               "$ADC_WORK/scaffold/"
+  # Add dotfiles for scaffold to copy
+  mkdir -p "$ADC_WORK/dotfiles/.config"
+  echo '# zshrc' > "$ADC_WORK/dotfiles/.zshrc"
+  echo '# tmux' > "$ADC_WORK/dotfiles/.tmux.conf"
+  touch "$ADC_WORK/dotfiles/.config/.keep"
   (cd "$ADC_WORK" && git add -A && git -c user.name=test -c user.email=test@test.com commit -m "init" >/dev/null 2>&1)
   (cd "$ADC_WORK" && git push >/dev/null 2>&1)
 }
@@ -55,17 +60,41 @@ init_git_target() {
 
 @test "creates dotfiles/.claude directory" {
   bash "$SCAFFOLD" "$TARGET"
-  [ -d "$TARGET/.devcontainer/dotfiles/.claude" ]
+  [ -d "$TARGET/dotfiles/.claude" ]
 }
 
 @test "creates dotfiles/.gemini directory" {
   bash "$SCAFFOLD" "$TARGET"
-  [ -d "$TARGET/.devcontainer/dotfiles/.gemini" ]
+  [ -d "$TARGET/dotfiles/.gemini" ]
 }
 
 @test "creates dotfiles/.codex directory" {
   bash "$SCAFFOLD" "$TARGET"
-  [ -d "$TARGET/.devcontainer/dotfiles/.codex" ]
+  [ -d "$TARGET/dotfiles/.codex" ]
+}
+
+@test "creates dotfiles/.gitignore" {
+  bash "$SCAFFOLD" "$TARGET"
+  [ -f "$TARGET/dotfiles/.gitignore" ]
+}
+
+@test "dotfiles/.gitignore ignores all by default" {
+  bash "$SCAFFOLD" "$TARGET"
+  grep -q '^\*$' "$TARGET/dotfiles/.gitignore"
+}
+
+@test "dotfiles/.zshrc is committed when vendor has dotfiles" {
+  init_git_target
+  run env AGENTS_DEVCONTAINER_URL="$ADC_BARE" bash "$SCAFFOLD" "$TARGET"
+  [ "$status" -eq 0 ]
+  git -C "$TARGET" ls-files dotfiles/.zshrc | grep -q "dotfiles/.zshrc"
+}
+
+@test "dotfiles/.tmux.conf is committed when vendor has dotfiles" {
+  init_git_target
+  run env AGENTS_DEVCONTAINER_URL="$ADC_BARE" bash "$SCAFFOLD" "$TARGET"
+  [ "$status" -eq 0 ]
+  git -C "$TARGET" ls-files dotfiles/.tmux.conf | grep -q "dotfiles/.tmux.conf"
 }
 
 # --- devcontainer.json content -------------------------------------------------
@@ -121,24 +150,17 @@ init_git_target() {
 
 # --- .gitignore content --------------------------------------------------------
 
-@test ".gitignore includes dotfiles/.claude/" {
+@test ".devcontainer/.gitignore does not include dotfiles entries" {
   bash "$SCAFFOLD" "$TARGET"
-  grep -q "dotfiles/.claude/" "$TARGET/.devcontainer/.gitignore"
+  ! grep -q "dotfiles/" "$TARGET/.devcontainer/.gitignore"
 }
 
-@test ".gitignore includes dotfiles/.gemini/" {
-  bash "$SCAFFOLD" "$TARGET"
-  grep -q "dotfiles/.gemini/" "$TARGET/.devcontainer/.gitignore"
-}
-
-@test ".gitignore includes dotfiles/.codex/" {
-  bash "$SCAFFOLD" "$TARGET"
-  grep -q "dotfiles/.codex/" "$TARGET/.devcontainer/.gitignore"
-}
-
-@test ".gitignore includes dotfiles/.zsh_history" {
-  bash "$SCAFFOLD" "$TARGET"
-  grep -q "dotfiles/.zsh_history" "$TARGET/.devcontainer/.gitignore"
+@test "devcontainer.json initializeCommand uses dotfiles/ path" {
+  init_git_target
+  run env AGENTS_DEVCONTAINER_URL="$ADC_BARE" bash "$SCAFFOLD" "$TARGET"
+  [ "$status" -eq 0 ]
+  grep -q 'dotfiles/.claude' "$TARGET/.devcontainer/devcontainer.json"
+  ! grep -q '.devcontainer/dotfiles' "$TARGET/.devcontainer/devcontainer.json"
 }
 
 # --- devcontainer skip when already exists -------------------------------------
