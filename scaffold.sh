@@ -33,7 +33,21 @@ fi
 if [[ -e "$DC" ]]; then
   echo "SKIP: $DC already exists. Skipping devcontainer setup." >&2
 else
-  mkdir -p "$DC/dotfiles/.claude" "$DC/dotfiles/.gemini" "$DC/dotfiles/.codex"
+  # dotfiles at project root (gitignore-by-default model)
+  DOTFILES="$TARGET/dotfiles"
+  mkdir -p "$DOTFILES/.claude" "$DOTFILES/.gemini" "$DOTFILES/.codex" "$DOTFILES/.ssh"
+  printf '*\n!.gitignore\n' > "$DOTFILES/.gitignore"
+
+  # Copy base dotfiles from vendor and force-commit
+  if [[ -d "$ADC_DIR/dotfiles" ]]; then
+    cp "$ADC_DIR/dotfiles/.zshrc"     "$DOTFILES/.zshrc"
+    cp "$ADC_DIR/dotfiles/.tmux.conf" "$DOTFILES/.tmux.conf"
+    cp -r "$ADC_DIR/dotfiles/.config" "$DOTFILES/.config"
+    git -C "$TARGET" add "$DOTFILES/.gitignore"
+    git -C "$TARGET" add -f "$DOTFILES/.zshrc" "$DOTFILES/.tmux.conf" "$DOTFILES/.config"
+  else
+    git -C "$TARGET" add "$DOTFILES/.gitignore"
+  fi
 
   # Generate devcontainer.project.json (project-specific overrides)
   if [[ "$TAG" != "latest" ]]; then
@@ -64,7 +78,7 @@ JSON
   "workspaceMount": "source=\${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
   "workspaceFolder": "/workspace",
 
-  "initializeCommand": "mkdir -p \"\${localWorkspaceFolder}/.devcontainer/dotfiles/.claude\" \"\${localWorkspaceFolder}/.devcontainer/dotfiles/.gemini\" \"\${localWorkspaceFolder}/.devcontainer/dotfiles/.codex\"",
+  "initializeCommand": "mkdir -p \"\${localWorkspaceFolder}/dotfiles/.claude\" \"\${localWorkspaceFolder}/dotfiles/.gemini\" \"\${localWorkspaceFolder}/dotfiles/.codex\"",
 
   "mounts": [
     "source=devcontainer-gh-\${devcontainerId},target=/home/ubuntu/.gh-config,type=volume"
@@ -88,13 +102,8 @@ JSON
   fi
 
   cat > "$DC/.gitignore" <<'GITIGNORE'
-# Per-project agent state — keep local, never commit.
-dotfiles/.claude/
-dotfiles/.gemini/
-dotfiles/.codex/
-dotfiles/.config/gh/
-dotfiles/.ssh/
-dotfiles/.zsh_history
+# gh CLI config directory — contains OAuth tokens at runtime.
+.config/gh/
 GITIGNORE
 
   cat > "$DC/project-tools.yml" << 'TOOLS'
@@ -145,6 +154,7 @@ echo "WARNING: vendor/agents-devcontainer は内部に ai-sdd-guide サブモジ
 echo "  --recursive を使うと消費プロジェクトに意図せず取り込まれる。"
 echo "  git submodule update --init (without --recursive) を使うこと。"
 echo ""
-echo "To override dotfiles, drop files into $DC/dotfiles/ (e.g., .zshrc, .tmux.conf, .config/)."
-echo "To extend .zshrc rather than replace it: source /opt/agents/dotfiles/.zshrc at the top."
+echo "Dotfiles: base files (.zshrc, .tmux.conf, .config/) are committed in dotfiles/."
+echo "  Personal overrides (SSH keys, local settings) go in dotfiles/ and are gitignored."
+echo "  To commit a personal override: git add -f dotfiles/<file>"
 echo "To add extra tools: replace 'image' with 'build' and add a Dockerfile FROM the base image."
