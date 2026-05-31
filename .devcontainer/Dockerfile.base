@@ -32,6 +32,14 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 # Ubuntu base has no python preinstalled — let uv manage Python 3.12 (matches .python-version)
 RUN uv python install 3.12
 
+# Create a shared venv for project tools installed by agents-tools-install.
+# Ubuntu 26.04 ships Python 3.14 marked as externally managed (PEP 668), so
+# `uv pip install --system` would fail against it. Using a dedicated venv avoids
+# that restriction while keeping tools on PATH.
+RUN mkdir -p /opt/agents \
+    && uv venv /opt/agents/tools-venv --python 3.12 \
+    && chown -R ubuntu:ubuntu /opt/agents
+
 # Install Node.js (NodeSource) for gemini-cli and other AI tools
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
@@ -107,7 +115,7 @@ ENV PYTHONPATH="/workspace"
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV TZ=Asia/Tokyo
-ENV PATH="/workspace/.venv/bin:$PATH"
+ENV PATH="/workspace/.venv/bin:/opt/agents/tools-venv/bin:$PATH"
 
 LABEL org.opencontainers.image.source="https://github.com/toshikimiyagawa/agents-devcontainer" \
       org.opencontainers.image.description="General-purpose AI Agent devcontainer base image (Claude Code, Gemini CLI, Codex CLI, uv, tmux, neovim, yazi)." \
