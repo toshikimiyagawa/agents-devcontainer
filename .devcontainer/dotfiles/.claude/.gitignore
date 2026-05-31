@@ -1,5 +1,0 @@
-# Claude Code runtime state — credentials, session logs, caches.
-# Keep this directory tracked so the symlink target exists on first launch,
-# but don't commit anything inside it.
-*
-!.gitignore

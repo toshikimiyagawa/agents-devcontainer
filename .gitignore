@@ -6,7 +6,7 @@
 # OS / filesystem noise
 .DS_Store
 **/.DS_Store
-.devcontainer/dotfiles/.fuse_hidden*
+dotfiles/.fuse_hidden*
 
 # Editor swap files
 *.swp
