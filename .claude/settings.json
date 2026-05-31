@@ -7,6 +7,10 @@
           {
             "type": "command",
             "command": "vendor/ai-sdd-guide/integration/hooks/sdd-guard.sh"
+          },
+          {
+            "type": "command",
+            "command": "vendor/ai-sdd-guide/integration/hooks/skill-reminder.sh"
           }
         ]
       }

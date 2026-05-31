@@ -1,19 +1,43 @@
-# Project Guidelines (AGENTS.md)
+# Project Guidelines
 
-This project uses Spec-Driven Development (SDD). As an implementation agent your job is to
-implement the **frozen spec** — not to design.
+This project follows Spec-Driven Development (SDD).
+Read the canonical rules before any work:
+- `vendor/ai-sdd-guide/rules/core.md`
+- `vendor/ai-sdd-guide/rules/workflow.md`
+- `vendor/ai-sdd-guide/rules/subagents.md`
+- `vendor/ai-sdd-guide/rules/conventions.md`
+- `vendor/ai-sdd-guide/orchestration/rules/orchestration.md`
+- `vendor/ai-sdd-guide/catalog/rules/catalog.md`
 
-## Before coding
-1. Find the active spec under `specs/<feature>/` (`spec.md` / `plan.md` / `tasks.md`).
-2. Implement exactly the tasks in `tasks.md`. Every acceptance criterion in `spec.md` must map to a test.
+## Design phases (superpowers required)
+Use superpowers skills (brainstorming → writing-plans) for spec/plan/tasks.
+Capture output into `specs/<feature>/`. Human approves before freezing.
 
-## Hard rules (CI enforces these)
-- Do NOT change behavior beyond the approved tasks.
-- Every acceptance criterion must have a passing test.
-- If the spec is wrong, ambiguous, or insufficient: STOP and leave a note for a human. Do not redesign.
-- Do not modify files under `specs/` to fit your implementation.
+## Implementation phase (any agent, no superpowers needed)
+Implement exactly the frozen `specs/<feature>/tasks.md`. No more, no less.
+Every acceptance criterion must map to a passing test.
+If the spec is wrong or insufficient: STOP and escalate. Do not redesign.
 
-詳細: `vendor/ai-sdd-guide/rules/` (英語) ／ `vendor/ai-sdd-guide/docs/` (日本語)
+## Verify phase (superpowers required)
+Run the `sdd-reviewer` subagent/prompt against the diff to confirm the implementation
+matches the frozen spec. See `vendor/ai-sdd-guide/orchestration/rules/orchestration.md`
+for agent-specific instructions (Claude Code / Codex / Gemini CLI).
+
+## Hard rules
+- Do not modify files under `specs/` to fit an implementation.
+- Do not expand scope beyond approved tasks.
+- Do not disable SDD hooks or CI.
+
+Human-facing docs: `vendor/ai-sdd-guide/docs/`
+Templates: `vendor/ai-sdd-guide/templates/`
+Claude hooks: `.claude/settings.json` (copy from `vendor/ai-sdd-guide/integration/settings.json.example`)
+Codex hooks: `.codex/config.toml` (copy from `vendor/ai-sdd-guide/integration/codex/config.toml.example`)
+Subagents: `.claude/agents/` (copy from `vendor/ai-sdd-guide/integration/agents/`)
+
+## CLAUDE.md
+CLAUDE.md is a symlink to this file. Do not replace it with a regular file.
+
+(If you change the submodule path, update all paths above to match.)
 
 ## サブモジュール管理の注意
 
