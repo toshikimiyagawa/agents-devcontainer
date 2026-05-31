@@ -3,5 +3,7 @@ dotfiles/.claude/
 dotfiles/.gemini/
 dotfiles/.codex/
 dotfiles/.config/gh/
-dotfiles/.ssh/
+# .ssh directory itself is tracked (contains only .gitignore); contents are not.
+dotfiles/.ssh/*
+!dotfiles/.ssh/.gitignore
 dotfiles/.zsh_history
