@@ -82,7 +82,7 @@ JSON
   "workspaceMount": "source=\${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
   "workspaceFolder": "/workspace",
 
-  "initializeCommand": "mkdir -p \"\${localWorkspaceFolder}/dotfiles/.claude\" \"\${localWorkspaceFolder}/dotfiles/.gemini\" \"\${localWorkspaceFolder}/dotfiles/.codex\"",
+  "initializeCommand": "mkdir -p \"\${localWorkspaceFolder}/dotfiles/.claude\" \"\${localWorkspaceFolder}/dotfiles/.gemini\" \"\${localWorkspaceFolder}/dotfiles/.codex\" \"\${localWorkspaceFolder}/dotfiles/.ssh\"",
 
   "mounts": [
     "source=devcontainer-gh-\${devcontainerId},target=/home/ubuntu/.gh-config,type=volume"
