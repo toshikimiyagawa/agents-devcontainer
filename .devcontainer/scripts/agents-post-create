@@ -40,15 +40,21 @@ rm -f "$HOME/.zsh_history"
 ln -sf "$PROJECT/.zsh_history" "$HOME/.zsh_history"
 log "linked .zsh_history -> $PROJECT/.zsh_history"
 
-# --- 3. SSH (copy, not symlink — OpenSSH requires strict permissions) ---------
-if [[ -d "$PROJECT/.ssh" ]] && compgen -G "$PROJECT/.ssh/*" >/dev/null 2>&1; then
+# --- 3. SSH (copy from host bind-mount — OpenSSH requires strict permissions) -
+# Source is the host ~/.ssh, bind-mounted read-only at /mnt/host-ssh (see the
+# "mounts" entry in devcontainer.json). Copy (not symlink) so we can enforce
+# 600/700, and copy only top-level regular files so non-regular entries like
+# ~/.ssh/agent/ (a socket dir) don't abort the copy under `set -e`.
+SSH_SRC="${AGENTS_SSH_SRC:-/mnt/host-ssh}"
+if [[ -d "$SSH_SRC" ]] && compgen -G "$SSH_SRC/*" >/dev/null 2>&1; then
   rm -rf "$HOME/.ssh"
-  cp -r "$PROJECT/.ssh" "$HOME/.ssh"
+  mkdir -p "$HOME/.ssh"
   chmod 700 "$HOME/.ssh"
+  find "$SSH_SRC" -maxdepth 1 -type f -exec cp -f {} "$HOME/.ssh/" \;
   find "$HOME/.ssh" -maxdepth 1 -type f -exec chmod 600 {} +
-  log "copied .ssh from project"
+  log "copied .ssh from host ($SSH_SRC)"
 else
-  log "skip .ssh (no keys in project dotfiles)"
+  log "skip .ssh (no host keys mounted at $SSH_SRC)"
 fi
 
 # --- 4. tmux plugin manager + plugins -----------------------------------------
