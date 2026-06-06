@@ -10,13 +10,18 @@
   "workspaceFolder": "/workspace",
 
   // Ensure project-state dirs exist before agents-post-create creates symlinks.
-  "initializeCommand": "mkdir -p \"${localWorkspaceFolder}/dotfiles/.claude\" \"${localWorkspaceFolder}/dotfiles/.gemini\" \"${localWorkspaceFolder}/dotfiles/.codex\" \"${localWorkspaceFolder}/dotfiles/.ssh\"",
+  "initializeCommand": "mkdir -p \"${localWorkspaceFolder}/dotfiles/.claude\" \"${localWorkspaceFolder}/dotfiles/.gemini\" \"${localWorkspaceFolder}/dotfiles/.codex\"",
 
   "mounts": [
     // Persist gh OAuth token across rebuilds via a named volume scoped to this
     // devcontainer. Run `gh auth login` once on first launch; token survives rebuilds.
     // To log out: docker volume rm devcontainer-gh-<devcontainerId>
-    "source=devcontainer-gh-${devcontainerId},target=/home/ubuntu/.gh-config,type=volume"
+    "source=devcontainer-gh-${devcontainerId},target=/home/ubuntu/.gh-config,type=volume",
+    // Mount the host ~/.ssh read-only; agents-post-create copies it into
+    // /home/ubuntu/.ssh with strict 600/700 perms. Mounted outside $HOME so the
+    // UID remap (updateRemoteUserUID) doesn't try to chown a read-only mount.
+    // Requires ~/.ssh to exist on the host.
+    "source=${localEnv:HOME}/.ssh,target=/mnt/host-ssh,type=bind,readonly"
   ],
 
   "remoteEnv": {
