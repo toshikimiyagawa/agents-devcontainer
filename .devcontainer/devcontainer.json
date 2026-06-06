@@ -3,7 +3,12 @@
 
   "build": {
     "context": "..",
-    "dockerfile": "../.devcontainer/Dockerfile"
+    "dockerfile": "../.devcontainer/Dockerfile",
+    // Force `docker build` to pull a newer base image on every rebuild. The
+    // Dockerfile is `FROM ghcr.io/...:latest`; without --pull, `devcontainer up
+    // --remove-existing-container` reuses the stale local cache and keeps the
+    // old baked-in scripts (e.g. agents-post-create).
+    "options": ["--pull"]
   },
 
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
