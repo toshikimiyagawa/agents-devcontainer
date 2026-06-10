@@ -41,6 +41,7 @@ manifest_get() {
 manifest_set() {
   local p="$1" h="$2" tmp
   tmp="$(mktemp)"
+  trap 'rm -f "$tmp"' RETURN
   if [[ -f "$MANIFEST" ]]; then
     awk -v p="$p" '$1!=p' "$MANIFEST" > "$tmp"
   fi
@@ -106,6 +107,7 @@ while IFS= read -r -d '' up_file; do
       manifest_set "$rel" "$up_hash"
       log "added $rel (new upstream file)"
     else
+      rm -f "$sidecar"
       log "skip $rel (missing locally; in manifest)"
     fi
     continue
