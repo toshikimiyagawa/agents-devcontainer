@@ -1,0 +1,161 @@
+#!/usr/bin/env bash
+# Sync base dotfiles from the agents-devcontainer submodule into the project's
+# dotfiles/, following upstream for files the project has NOT overridden.
+#
+# Override detection uses a provenance manifest (dotfiles/.agents-dotfiles.lock)
+# recording the sha256 of the upstream version last synced (the baseline). A
+# project file equal to its baseline is "not overridden" and fast-forwards to
+# upstream; an overridden file whose upstream also changed is a conflict that is
+# reported (non-destructive), never overwritten.
+#
+# Usage:
+#   agents-dotfiles-sync                 # sync (default)
+#   agents-dotfiles-sync --accept PATH…  # keep local override, accept upstream baseline
+#
+# Env (overridable for tests):
+#   UPSTREAM_DIR  default /workspace/vendor/agents-devcontainer/dotfiles
+#   PROJECT_DIR   default /workspace/dotfiles
+set -euo pipefail
+
+UPSTREAM_DIR="${UPSTREAM_DIR:-/workspace/vendor/agents-devcontainer/dotfiles}"
+PROJECT_DIR="${PROJECT_DIR:-/workspace/dotfiles}"
+UPSTREAM_DIR="${UPSTREAM_DIR%/}"
+PROJECT_DIR="${PROJECT_DIR%/}"
+MANIFEST="$PROJECT_DIR/.agents-dotfiles.lock"
+
+log() { printf '[agents-dotfiles-sync] %s\n' "$*"; }
+
+hash_file() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | awk '{print $1}'
+  else
+    shasum -a 256 "$1" | awk '{print $1}'
+  fi
+}
+
+manifest_get() {
+  [[ -f "$MANIFEST" ]] || return 0
+  awk -v p="$1" '$1==p {print $2; exit}' "$MANIFEST"
+}
+
+manifest_set() {
+  local p="$1" h="$2" tmp
+  tmp="$(mktemp)"
+  if [[ -f "$MANIFEST" ]]; then
+    awk -v p="$p" '$1!=p' "$MANIFEST" > "$tmp"
+  fi
+  printf '%s %s\n' "$p" "$h" >> "$tmp"
+  LC_ALL=C sort "$tmp" -o "$tmp"
+  mv "$tmp" "$MANIFEST"
+}
+
+is_excluded() {
+  case "$1" in
+    .gitignore|.zsh_history) return 0 ;;
+    .claude|.gemini|.codex|.ssh) return 0 ;;
+    .claude/*|.gemini/*|.codex/*|.ssh/*) return 0 ;;
+  esac
+  return 1
+}
+
+# --- --accept mode ------------------------------------------------------------
+if [[ "${1:-}" == "--accept" ]]; then
+  shift
+  for rel in "$@"; do
+    up_file="$UPSTREAM_DIR/$rel"
+    if [[ -f "$up_file" ]]; then
+      manifest_set "$rel" "$(hash_file "$up_file")"
+      rm -f "$PROJECT_DIR/$rel.agents-upstream"
+      log "accepted upstream baseline for $rel (local override kept)"
+    else
+      log "skip --accept $rel (no upstream file)"
+    fi
+  done
+  exit 0
+fi
+
+# --- sync mode ----------------------------------------------------------------
+if [[ ! -d "$UPSTREAM_DIR" ]]; then
+  log "skip (no upstream at $UPSTREAM_DIR)"
+  exit 0
+fi
+mkdir -p "$PROJECT_DIR"
+
+conflicts=()
+
+while IFS= read -r -d '' up_file; do
+  rel="${up_file#"$UPSTREAM_DIR"/}"
+  is_excluded "$rel" && continue
+
+  up_hash="$(hash_file "$up_file")"
+  base_hash="$(manifest_get "$rel")"
+  proj_file="$PROJECT_DIR/$rel"
+  sidecar="$proj_file.agents-upstream"
+
+  if [[ -f "$proj_file" ]]; then
+    proj_hash="$(hash_file "$proj_file")"
+  else
+    proj_hash=""
+  fi
+
+  # project file missing
+  if [[ -z "$proj_hash" ]]; then
+    if [[ -z "$base_hash" ]]; then
+      mkdir -p "$(dirname "$proj_file")"
+      cp "$up_file" "$proj_file"
+      manifest_set "$rel" "$up_hash"
+      log "added $rel (new upstream file)"
+    else
+      log "skip $rel (missing locally; in manifest)"
+    fi
+    continue
+  fi
+
+  # no baseline recorded yet
+  if [[ -z "$base_hash" ]]; then
+    if [[ "$proj_hash" == "$up_hash" ]]; then
+      manifest_set "$rel" "$up_hash"
+      rm -f "$sidecar"
+    else
+      cp "$up_file" "$sidecar"
+      conflicts+=("$rel")
+    fi
+    continue
+  fi
+
+  # baseline known
+  if [[ "$proj_hash" == "$base_hash" ]]; then
+    # not overridden
+    if [[ "$up_hash" != "$base_hash" ]]; then
+      cp "$up_file" "$proj_file"
+      manifest_set "$rel" "$up_hash"
+      log "updated $rel (upstream advanced)"
+    fi
+    rm -f "$sidecar"
+  else
+    # overridden
+    if [[ "$up_hash" == "$base_hash" ]]; then
+      rm -f "$sidecar"                  # upstream unchanged → keep override
+    elif [[ "$proj_hash" == "$up_hash" ]]; then
+      manifest_set "$rel" "$up_hash"    # already reconciled
+      rm -f "$sidecar"
+      log "reconciled $rel (now matches upstream)"
+    else
+      cp "$up_file" "$sidecar"
+      conflicts+=("$rel")
+    fi
+  fi
+done < <(find "$UPSTREAM_DIR" -type f -print0)
+
+if [[ ${#conflicts[@]} -gt 0 ]]; then
+  log "----------------------------------------------------------------"
+  log "${#conflicts[@]} file(s) need manual review (local override + upstream change):"
+  for c in "${conflicts[@]}"; do
+    log "  - $c  (diff: diff \"$PROJECT_DIR/$c\" \"$PROJECT_DIR/$c.agents-upstream\")"
+  done
+  log "Keep your version and silence the warning with:"
+  log "  agents-dotfiles-sync --accept ${conflicts[*]}"
+  log "----------------------------------------------------------------"
+fi
+
+exit 0
