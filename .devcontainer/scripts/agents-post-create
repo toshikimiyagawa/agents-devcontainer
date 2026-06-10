@@ -8,6 +8,11 @@ PROJECT="/workspace/dotfiles"
 
 log() { printf '[agents-post-create] %s\n' "$*"; }
 
+# --- 0. Sync base dotfiles from upstream (non-fatal) --------------------------
+if command -v agents-dotfiles-sync >/dev/null 2>&1; then
+  agents-dotfiles-sync || log "warn: agents-dotfiles-sync failed (non-fatal)"
+fi
+
 # --- 1. Symlinked dotfiles ----------------------------------------------------
 link_one() {
   local name="$1"
