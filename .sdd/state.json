@@ -1,5 +1,5 @@
 {
-  "feature": "ci-pr-image-build",
-  "tier": 1,
+  "feature": "dotfiles-sync",
+  "tier": 2,
   "phase": "implement"
 }

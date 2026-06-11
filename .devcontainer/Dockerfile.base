@@ -100,7 +100,8 @@ USER root
 COPY .devcontainer/scripts/agents-post-create /usr/local/bin/agents-post-create
 COPY .devcontainer/scripts/agents-post-start  /usr/local/bin/agents-post-start
 COPY .devcontainer/scripts/agents-tools-install /usr/local/bin/agents-tools-install
-RUN chmod 0755 /usr/local/bin/agents-post-create /usr/local/bin/agents-post-start /usr/local/bin/agents-tools-install
+COPY .devcontainer/scripts/agents-dotfiles-sync /usr/local/bin/agents-dotfiles-sync
+RUN chmod 0755 /usr/local/bin/agents-post-create /usr/local/bin/agents-post-start /usr/local/bin/agents-tools-install /usr/local/bin/agents-dotfiles-sync
 
 WORKDIR /workspace
 

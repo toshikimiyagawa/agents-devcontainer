@@ -25,6 +25,10 @@ setup() {
   echo '# zshrc' > "$ADC_WORK/dotfiles/.zshrc"
   echo '# tmux' > "$ADC_WORK/dotfiles/.tmux.conf"
   touch "$ADC_WORK/dotfiles/.config/.keep"
+  # Ship the sync script so the submodule checkout has it (used to seed the manifest)
+  mkdir -p "$ADC_WORK/.devcontainer/scripts"
+  cp "$BATS_TEST_DIRNAME/../.devcontainer/scripts/agents-dotfiles-sync" "$ADC_WORK/.devcontainer/scripts/"
+  chmod +x "$ADC_WORK/.devcontainer/scripts/agents-dotfiles-sync"
   (cd "$ADC_WORK" && git add -A && git -c user.name=test -c user.email=test@test.com commit -m "init" >/dev/null 2>&1)
   (cd "$ADC_WORK" && git push >/dev/null 2>&1)
 }
@@ -214,4 +218,16 @@ init_git_target() {
   run env AGENTS_DEVCONTAINER_URL="$ADC_BARE" bash "$SCAFFOLD" "$TARGET"
   [ "$status" -eq 0 ]
   [ ! -f "$TARGET/.devcontainer/project-tools.yml" ]
+}
+
+# --- dotfiles provenance manifest ---------------------------------------------
+
+@test "seeds and commits dotfiles/.agents-dotfiles.lock" {
+  init_git_target
+  run env AGENTS_DEVCONTAINER_URL="$ADC_BARE" bash "$SCAFFOLD" "$TARGET"
+  [ "$status" -eq 0 ]
+  [ -f "$TARGET/dotfiles/.agents-dotfiles.lock" ]
+  git -C "$TARGET" ls-files dotfiles/.agents-dotfiles.lock | grep -q ".agents-dotfiles.lock"
+  grep -q '^.zshrc ' "$TARGET/dotfiles/.agents-dotfiles.lock"
+  grep -q '^.tmux.conf ' "$TARGET/dotfiles/.agents-dotfiles.lock"
 }

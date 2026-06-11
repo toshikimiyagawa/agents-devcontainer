@@ -46,8 +46,15 @@ else
       cp "$ADC_DIR/dotfiles/.zshrc"     "$DOTFILES/.zshrc"
       cp "$ADC_DIR/dotfiles/.tmux.conf" "$DOTFILES/.tmux.conf"
       cp -r "$ADC_DIR/dotfiles/.config" "$DOTFILES/.config"
+      # Seed the provenance manifest so future syncs know the upstream baseline
+      if [[ -x "$ADC_DIR/.devcontainer/scripts/agents-dotfiles-sync" ]]; then
+        UPSTREAM_DIR="$ADC_DIR/dotfiles" PROJECT_DIR="$DOTFILES" \
+          bash "$ADC_DIR/.devcontainer/scripts/agents-dotfiles-sync" >/dev/null 2>&1 || true
+      fi
       git -C "$TARGET" add "$DOTFILES/.gitignore"
       git -C "$TARGET" add -f "$DOTFILES/.zshrc" "$DOTFILES/.tmux.conf" "$DOTFILES/.config"
+      [[ -f "$DOTFILES/.agents-dotfiles.lock" ]] && \
+        git -C "$TARGET" add -f "$DOTFILES/.agents-dotfiles.lock"
     else
       git -C "$TARGET" add "$DOTFILES/.gitignore"
     fi
