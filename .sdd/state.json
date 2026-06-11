@@ -1,5 +1,5 @@
 {
   "feature": "claude-config-persist",
   "tier": 1,
-  "phase": "spec"
+  "phase": "verify"
 }

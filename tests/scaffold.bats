@@ -152,6 +152,13 @@ init_git_target() {
   [ "$output" = "agents-post-start" ]
 }
 
+@test "remoteEnv.CLAUDE_CONFIG_DIR persists Claude config under ~/.claude" {
+  init_git_target
+  env AGENTS_DEVCONTAINER_URL="$ADC_BARE" bash "$SCAFFOLD" "$TARGET"
+  run jq -r '.remoteEnv.CLAUDE_CONFIG_DIR' "$TARGET/.devcontainer/devcontainer.json"
+  [ "$output" = "/home/ubuntu/.claude" ]
+}
+
 # --- .gitignore content --------------------------------------------------------
 
 @test ".devcontainer/.gitignore does not include dotfiles entries" {
