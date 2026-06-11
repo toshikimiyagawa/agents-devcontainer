@@ -4,6 +4,18 @@
 # without touching ~/.gitconfig, which is not bind-mounted.
 set -euo pipefail
 
+log() { printf '[agents-post-start] %s\n' "$*"; }
+
+# --- SSH sync (re-run on every start so keys added after initial build land in ~/.ssh) ---
+PROJECT="${WORKSPACE:-/workspace}/dotfiles"
+if [[ -d "$PROJECT/.ssh" ]] && compgen -G "$PROJECT/.ssh/*" >/dev/null 2>&1; then
+  rm -rf "$HOME/.ssh"
+  cp -r "$PROJECT/.ssh" "$HOME/.ssh"
+  chmod 700 "$HOME/.ssh"
+  find "$HOME/.ssh" -maxdepth 1 -type f -exec chmod 600 {} +
+  log "synced .ssh from project dotfiles"
+fi
+
 # --- safe.directory (idempotent) ---
 git config --system --get-all safe.directory 2>/dev/null | grep -qx /workspace \
   || sudo git config --system --add safe.directory /workspace
