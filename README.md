@@ -201,24 +201,55 @@ Claude Code を起動してから、プロンプトで以下のスラッシュ�
 /plugin install superpowers@superpowers-marketplace
 ```
 
-プラグイン状態は `~/.claude/`（= `.devcontainer/dotfiles/.claude/` への symlink、gitignore 済み）に保存されるため、rebuild 後も保持される。
+プラグイン状態は `~/.claude/`（= `dotfiles/.claude/` への symlink、gitignore 済み）に保存されるため、rebuild 後も保持される。
 
-## dotfiles のカスタマイズ
+## dotfiles のライフサイクル
 
-`.devcontainer/dotfiles/` 内にファイルを置くと、イメージに焼き込まれたデフォルトを上書きできます。
+### source of truth
+
+ベース dotfiles の正本は `vendor/agents-devcontainer/dotfiles/*`（submodule）。
+`scaffold.sh` がプロジェクト直下の `dotfiles/` へ**初回コピー**し force-commit する。
+コンテナ内では `agents-post-create` が `~/<name>` → `/workspace/dotfiles/<name>` を symlink する。
+
+追従対象（ファイル単位）:
 
 | ファイル | 説明 |
 |---|---|
 | `.zshrc` | シェル設定 |
 | `.tmux.conf` | tmux 設定 |
-| `.config/` | starship 等のツール設定（ディレクトリ単位で上書き） |
+| `.config/*` | starship / nvim / lazygit / yazi / git などのツール設定 |
 
-`.zshrc` を全置換せずに拡張する場合:
+`.claude/` `.gemini/` `.codex/` `.ssh/` `.zsh_history` はランタイム/個人用のため追従対象外（gitignore 済み）。
 
-```zsh
-source /opt/agents/dotfiles/.zshrc
-# プロジェクト固有の設定
-export MY_VAR=...
+### upstream 更新の取り込み
+
+`vendor/agents-devcontainer` を bump した後、次回 rebuild 時に `agents-dotfiles-sync` が自動実行され、
+**自分で編集していない**ベースファイルだけを upstream の最新版へ更新する（`dotfiles/` の `git diff` として現れるので確認のうえ commit する）。
+
+```bash
+git submodule update --remote vendor/agents-devcontainer   # --recursive は使わない
+# 次回 rebuild 時に未編集ファイルが自動追従される
+```
+
+判定は `dotfiles/.agents-dotfiles.lock`（最後に同期した upstream 版の sha256）を基準に行う。
+
+### 上書き（override）
+
+`dotfiles/` 内のファイルを編集すると baseline から乖離し、以降そのファイルは自動更新の対象外になる（あなたの版が保護される）。
+
+### コンフリクト
+
+あなたが編集したファイルが upstream でも変更された場合、sync はそのファイルを**変更せず**警告し、
+`dotfiles/<file>.agents-upstream`（gitignore 済み）に upstream 版を出力する。差分確認:
+
+```bash
+diff dotfiles/.zshrc dotfiles/.zshrc.agents-upstream
+```
+
+upstream の変更を確認したうえで自分の版を維持したい場合（警告を止める。ファイルは変更しない）:
+
+```bash
+agents-dotfiles-sync --accept .zshrc
 ```
 
 詳細な仕様については [.devcontainer/Agents.md](.devcontainer/Agents.md) を参照してください。
