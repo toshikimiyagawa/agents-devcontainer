@@ -1,5 +1,5 @@
 {
-  "feature": "dotfiles-sync",
-  "tier": 2,
-  "phase": "implement"
+  "feature": "claude-config-persist",
+  "tier": 1,
+  "phase": "spec"
 }
