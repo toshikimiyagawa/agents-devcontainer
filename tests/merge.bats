@@ -200,6 +200,30 @@ JSON
   [ "$output" = "2" ]
 }
 
+# --- base.json content ---------------------------------------------------------
+
+BASE_JSON_FILE="$BATS_TEST_DIRNAME/../scaffold/devcontainer.base.json"
+
+@test "base.json does not forward GIT_AUTHOR_NAME" {
+  run jq -e '.remoteEnv | has("GIT_AUTHOR_NAME")' "$BASE_JSON_FILE"
+  [ "$output" = "false" ]
+}
+
+@test "base.json does not forward GIT_AUTHOR_EMAIL" {
+  run jq -e '.remoteEnv | has("GIT_AUTHOR_EMAIL")' "$BASE_JSON_FILE"
+  [ "$output" = "false" ]
+}
+
+@test "base.json does not forward GIT_COMMITTER_NAME" {
+  run jq -e '.remoteEnv | has("GIT_COMMITTER_NAME")' "$BASE_JSON_FILE"
+  [ "$output" = "false" ]
+}
+
+@test "base.json does not forward GIT_COMMITTER_EMAIL" {
+  run jq -e '.remoteEnv | has("GIT_COMMITTER_EMAIL")' "$BASE_JSON_FILE"
+  [ "$output" = "false" ]
+}
+
 # --- error handling ------------------------------------------------------------
 
 @test "merge: fails when base.json not found" {

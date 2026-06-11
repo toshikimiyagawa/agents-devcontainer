@@ -8,11 +8,7 @@
   ],
   "remoteEnv": {
     "GH_CONFIG_DIR": "/home/ubuntu/.gh-config",
-    "CLAUDE_CONFIG_DIR": "/home/ubuntu/.claude",
-    "GIT_AUTHOR_NAME": "${localEnv:GIT_AUTHOR_NAME}",
-    "GIT_AUTHOR_EMAIL": "${localEnv:GIT_AUTHOR_EMAIL}",
-    "GIT_COMMITTER_NAME": "${localEnv:GIT_AUTHOR_NAME}",
-    "GIT_COMMITTER_EMAIL": "${localEnv:GIT_AUTHOR_EMAIL}"
+    "CLAUDE_CONFIG_DIR": "/home/ubuntu/.claude"
   },
   "containerUser": "ubuntu",
   "remoteUser": "ubuntu",
