@@ -1,5 +1,5 @@
 {
-  "feature": "decouple-sdd",
-  "tier": 2,
+  "feature": "ci-pr-image-build",
+  "tier": 1,
   "phase": "implement"
 }
