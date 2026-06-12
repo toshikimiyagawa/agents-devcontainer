@@ -1,7 +1,7 @@
 # AI Agent Dev Container
 
 汎用的な AI Agent 開発のための Dev Container ベースイメージ。
-Claude Code, Gemini CLI, Codex CLI などのエージェントツールがプリインストールされており、すぐに開発を開始できる。
+Claude Code, Gemini CLI, Codex CLI, Hermes Agent などのエージェントツールがプリインストールされており、すぐに開発を開始できる。
 
 ## 特徴
 
@@ -11,6 +11,7 @@ Claude Code, Gemini CLI, Codex CLI などのエージェントツールがプリ
   - **Claude Code**: Anthropic によるターミナルベースの AI エージェント。
   - **Gemini CLI**: Google によるコードベース対応の AI エージェント。
   - **Codex CLI**: OpenAI によるターミナルベースの AI エージェント。
+  - **Hermes Agent**: NousResearch による自己改善型の自律 AI エージェント（永続メモリ・スキル学習・ブラウザ自動化）。初回利用時に `hermes setup` でプロバイダを設定する。
   - **ai-sdd-guide**: Spec-Driven Development (SDD) フレームワーク。プロジェクトに個別に導入する。
 - **モダンな開発ツール**: uv (Python), Neovim, Tmux, Lazygit, Yazi 等を同梱。
 - **ゼロフリクション認証**: `gh auth login` 一度でトークンが named volume に永続化。rebuild 後も再認証不要。
