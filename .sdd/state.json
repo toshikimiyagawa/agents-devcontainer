@@ -1,5 +1,5 @@
 {
-  "feature": "claude-config-persist",
+  "feature": "bats-stat-portability",
   "tier": 1,
-  "phase": "verify"
+  "phase": "implement"
 }

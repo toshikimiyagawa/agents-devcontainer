@@ -2,6 +2,11 @@
 
 POST_START="$BATS_TEST_DIRNAME/../.devcontainer/scripts/agents-post-start"
 
+# Octal permission bits, portable across GNU coreutils (Linux CI) and BSD stat (macOS).
+file_perms() {
+  stat -c '%a' "$1" 2>/dev/null || stat -f '%A' "$1"
+}
+
 setup() {
   TMPDIR="$(mktemp -d)"
   export HOME="$TMPDIR/home"
@@ -63,8 +68,8 @@ teardown() {
 
   WORKSPACE="$(dirname "$PROJECT")" run bash "$POST_START"
   [ "$status" -eq 0 ]
-  perms_dir="$(stat -f '%A' "$HOME/.ssh")"
-  perms_key="$(stat -f '%A' "$HOME/.ssh/id_ed25519_home")"
+  perms_dir="$(file_perms "$HOME/.ssh")"
+  perms_key="$(file_perms "$HOME/.ssh/id_ed25519_home")"
   [ "$perms_dir" = "700" ]
   [ "$perms_key" = "600" ]
 }
