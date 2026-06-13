@@ -1,5 +1,5 @@
 {
-  "feature": "bats-stat-portability",
-  "tier": 1,
-  "phase": "implement"
+  "feature": "hermes-agent",
+  "tier": 2,
+  "phase": "verify"
 }
