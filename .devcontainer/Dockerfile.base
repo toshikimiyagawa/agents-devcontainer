@@ -102,6 +102,10 @@ RUN curl -fsSL https://claude.ai/install.sh | bash \
 # `npx playwright install --with-deps chromium`, using ubuntu's passwordless
 # sudo for the apt system libraries.
 RUN curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash -s -- --skip-setup
+
+# --- Initialize Hermes config (custom vLLM provider: qwen3.6-35b-a3b) ----------
+COPY .devcontainer/scripts/hermes-init.sh /usr/local/bin/hermes-init.sh
+RUN chmod 0755 /usr/local/bin/hermes-init.sh && hermes-init.sh
 USER root
 
 # --- Bake runtime scripts -----------------------------------------------------
