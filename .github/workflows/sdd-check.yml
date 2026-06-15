@@ -46,6 +46,15 @@ jobs:
           sed -i.bak '/^update = none$/d' .gitmodules && rm -f .gitmodules.bak
           git submodule update --init vendor/ai-sdd-guide
 
+      - name: Debug: Check submodule
+        run: |
+          echo "=== vendor/ai-sdd-guide exists? ==="
+          ls -la vendor/ai-sdd-guide || echo "NOT FOUND"
+          echo "=== .gitmodules content ==="
+          cat .gitmodules
+          echo "=== submodule status ==="
+          git submodule status
+
       - name: Tests
         run: bats tests/
 
