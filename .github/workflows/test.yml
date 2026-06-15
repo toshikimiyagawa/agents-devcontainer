@@ -33,5 +33,11 @@ jobs:
           sudo curl -fsSL https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 \
             -o /usr/local/bin/yq && sudo chmod +x /usr/local/bin/yq
 
+      - name: Init ai-sdd-guide submodule
+        run: |
+          # Remove update=none to allow CI to init the submodule
+          git config -f .gitmodules --unset submodule.vendor/ai-sdd-guide.update || true
+          git submodule update --init vendor/ai-sdd-guide
+
       - name: Run tests
         run: bats tests/
