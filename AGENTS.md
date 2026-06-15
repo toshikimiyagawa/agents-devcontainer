@@ -44,17 +44,8 @@ CLAUDE.md is a symlink to this file. Do not replace it with a regular file.
 
 `vendor/ai-sdd-guide` はこのリポジトリ自身の開発用サブモジュール。消費プロジェクトには不要。
 
-**消費プロジェクトでサブモジュールを更新する際は `--recursive` を使わないこと。**
-`--recursive` を使うと `vendor/agents-devcontainer/vendor/ai-sdd-guide` が意図せず初期化される。
-
-```bash
-# 正しい更新方法（消費プロジェクト側）
-git submodule update --init
-git submodule update --remote vendor/agents-devcontainer
-
-# NG
-git submodule update --init --recursive  # ai-sdd-guide がネストして取り込まれる
-```
+`.gitmodules` に `update = none` を設定しているため、消費プロジェクトが
+`git submodule update --init --recursive` を実行しても `ai-sdd-guide` はスキップされる。
 
 このリポジトリ自身で `vendor/ai-sdd-guide` を使う場合は明示的にパス指定する：
 ```bash
