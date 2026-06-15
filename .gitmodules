@@ -1,6 +1,4 @@
-# WARNING (consuming projects): このサブモジュールは agents-devcontainer 自身の開発用。
-# 消費プロジェクトで `git submodule update --recursive` を使うと意図せず取り込まれる。
-# 消費プロジェクトでは --recursive を使わないこと。
 [submodule "vendor/ai-sdd-guide"]
 	path = vendor/ai-sdd-guide
 	url = https://github.com/toshikimiyagawa/ai-sdd-guide.git
+	update = none
