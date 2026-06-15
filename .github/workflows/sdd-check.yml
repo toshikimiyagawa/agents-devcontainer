@@ -42,9 +42,9 @@ jobs:
 
       - name: Init ai-sdd-guide submodule
         run: |
-          # Remove update=none to allow CI to init the submodule
-          git config -f .gitmodules --unset submodule.vendor/ai-sdd-guide.update || true
-          git submodule update --init vendor/ai-sdd-guide
+          # Remove update=none from .gitmodules to allow CI to init the submodule
+          sed -i.bak '/^update = none$/d' .gitmodules && rm -f .gitmodules.bak
+          git submodule update --init --recursive
 
       - name: Tests
         run: bats tests/
