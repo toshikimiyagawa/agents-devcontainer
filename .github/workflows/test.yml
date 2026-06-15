@@ -29,7 +29,7 @@ jobs:
         run: |
           # Remove update=none from .gitmodules to allow CI to init the submodule
           sed -i.bak '/^update = none$/d' .gitmodules && rm -f .gitmodules.bak
-          git submodule update --init --recursive
+          git submodule update --init vendor/ai-sdd-guide
 
       - name: Install bats-core
         uses: bats-core/bats-action@3.0.0
