@@ -10,8 +10,8 @@
   {
     "id": "hermes-superpowers-bootstrap",
     "phase": "tasks",
-    "status": "pending",
-    "assigned_agent": null,
+    "status": "completed",
+    "assigned_agent": "codex",
     "handoff": "specs/hermes-superpowers-bootstrap/handoff.md",
     "blocked_reason": null
   }
