@@ -32,6 +32,19 @@ teardown() {
   [ "$(readlink "$HOME/.hermes")" = "$AGENTS_DOTFILES_PROJECT/.hermes" ]
 }
 
+@test "re-running keeps Hermes state link idempotent" {
+  run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  echo "configured" > "$AGENTS_DOTFILES_PROJECT/.hermes/config.yaml"
+
+  run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [ -L "$HOME/.hermes" ]
+  [ "$(readlink "$HOME/.hermes")" = "$AGENTS_DOTFILES_PROJECT/.hermes" ]
+  run cat "$HOME/.hermes/config.yaml"
+  [ "$output" = "configured" ]
+}
+
 @test "keeps existing Claude Gemini Codex links working" {
   run bash "$SCRIPT"
   [ "$status" -eq 0 ]

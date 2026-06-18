@@ -1,5 +1,5 @@
 {
   "feature": "hermes-config-persist",
   "tier": 2,
-  "phase": "implement"
+  "phase": "verify"
 }
