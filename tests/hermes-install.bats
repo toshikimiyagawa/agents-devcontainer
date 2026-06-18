@@ -50,3 +50,15 @@ AGENTS="$BATS_TEST_DIRNAME/../.devcontainer/Agents.md"
   grep -q "dotfiles/.hermes" "$AGENTS"
   grep -q "host.*~/.hermes.*共有しない" "$AGENTS"
 }
+
+@test "README documents Hermes superpowers bootstrap" {
+  grep -q "skills-sh/obra/superpowers" "$README"
+  grep -q "dotfiles/.hermes" "$README"
+  grep -q "postCreate" "$README"
+}
+
+@test "Agents.md documents Hermes superpowers bootstrap" {
+  grep -q "skills-sh/obra/superpowers" "$AGENTS"
+  grep -q "dotfiles/.hermes" "$AGENTS"
+  grep -q "non-fatal" "$AGENTS"
+}

@@ -37,6 +37,7 @@ Dockerfile       →  FROM ghcr.io/...  (このリポジトリ自身の dogfood 
   - `~/.claude` は **ホストと共有しない**。`dotfiles/.claude/` を symlink して、コンテナ専用の認証・履歴をワークスペース配下に隔離する（中身は gitignore 済み）。
   - `~/.hermes` は host `~/.hermes` と共有しない。`dotfiles/.hermes/` を symlink し、container 専用の Hermes 認証・履歴・memory・provider/model 設定を保持する（中身は gitignore 済み）。
   - `initializeCommand` で `dotfiles/.claude`, `dotfiles/.gemini`, `dotfiles/.codex`, `dotfiles/.hermes` ディレクトリの存在を保証すること。
+  - Hermes superpowers bootstrap は `.hermes` symlink 作成後に `agents-post-create` で実行する。`hermes skills install --yes skills-sh/obra/superpowers` が成功したら `dotfiles/.hermes/.agents-superpowers-installed` を marker とし、再実行時は skip する。network/registry failure は non-fatal warning として扱う。
 
 ## dotfiles の仕組み（レイヤー構造）
 
@@ -65,7 +66,7 @@ export MY_API_KEY=...
 
 ## セットアップ自動化
 
-- **`agents-post-create`** (`postCreateCommand`): dotfiles シンボリックリンク、SSH コピー、TPM インストール。コンテナ初回作成時に実行。
+- **`agents-post-create`** (`postCreateCommand`): dotfiles シンボリックリンク、Hermes superpowers bootstrap、SSH コピー、TPM インストール。コンテナ初回作成時に実行。
 - **`agents-post-start`** (`postStartCommand`): `/etc/gitconfig` に safe.directory、credential helper（`!/usr/bin/gh auth git-credential`）、git identity を設定。コンテナ起動のたびに実行（冪等）。
 
 git identity は `remoteEnv` 経由でホストの `GIT_AUTHOR_NAME` / `GIT_AUTHOR_EMAIL` を転送する。未設定の場合は `gh api user` でフォールバック。
@@ -90,7 +91,7 @@ git identity は `remoteEnv` 経由でホストの `GIT_AUTHOR_NAME` / `GIT_AUTH
 - `Claude Code` (claude)
 - `Gemini CLI` (gemini)
 - `Codex CLI` (codex) — OpenAI によるターミナルベースの AI エージェント。
-- `Hermes Agent` (hermes) — NousResearch による自己改善型の自律 AI エージェント。`USER ubuntu` で per-user インストール（コードは `~/.hermes`、コマンドは `~/.local/bin/hermes`、Claude Code と同じレイアウト）。ブラウザ自動化（Playwright/Chromium）込み。runtime state は `~/.hermes`（symlink 先 = `dotfiles/.hermes/`）に永続化し、host `~/.hermes` とは共有しない。初回利用時に `hermes setup` でプロバイダを設定する。
+- `Hermes Agent` (hermes) — NousResearch による自己改善型の自律 AI エージェント。`USER ubuntu` で per-user インストール（コードは `~/.hermes`、コマンドは `~/.local/bin/hermes`、Claude Code と同じレイアウト）。ブラウザ自動化（Playwright/Chromium）込み。runtime state は `~/.hermes`（symlink 先 = `dotfiles/.hermes/`）に永続化し、host `~/.hermes` とは共有しない。`postCreate` で `skills-sh/obra/superpowers` を bootstrap する。初回利用時に `hermes setup` でプロバイダを設定する。
 - `ai-sdd-guide` — Spec-Driven Development フレームワーク。`scaffold.sh` が git submodule として `vendor/ai-sdd-guide` に配置する。ルール: `vendor/ai-sdd-guide/rules/`、ドキュメント: `vendor/ai-sdd-guide/docs/`。
 - `Superpowers` — Claude Code plugin。`devcontainer up` には組み込まず、Claude 内で `/plugin install superpowers@claude-plugins-official` を実行して opt-in する。状態は `~/.claude/`（symlink 先 = `dotfiles/.claude/`）に永続化。
 - `GitHub CLI` (gh) — git 認証に使用。
