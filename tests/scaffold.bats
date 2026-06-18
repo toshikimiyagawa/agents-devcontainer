@@ -77,6 +77,11 @@ init_git_target() {
   [ -d "$TARGET/dotfiles/.codex" ]
 }
 
+@test "creates dotfiles/.hermes directory" {
+  bash "$SCAFFOLD" "$TARGET"
+  [ -d "$TARGET/dotfiles/.hermes" ]
+}
+
 @test "creates dotfiles/.gitignore" {
   bash "$SCAFFOLD" "$TARGET"
   [ -f "$TARGET/dotfiles/.gitignore" ]
@@ -172,6 +177,13 @@ init_git_target() {
   [ "$status" -eq 0 ]
   grep -q 'dotfiles/.claude' "$TARGET/.devcontainer/devcontainer.json"
   ! grep -q '.devcontainer/dotfiles' "$TARGET/.devcontainer/devcontainer.json"
+}
+
+@test "devcontainer.json initializeCommand creates dotfiles/.hermes" {
+  init_git_target
+  run env AGENTS_DEVCONTAINER_URL="$ADC_BARE" bash "$SCAFFOLD" "$TARGET"
+  [ "$status" -eq 0 ]
+  grep -q 'dotfiles/.hermes' "$TARGET/.devcontainer/devcontainer.json"
 }
 
 # --- devcontainer skip when already exists -------------------------------------

@@ -15,7 +15,7 @@
   "workspaceFolder": "/workspace",
 
   // Ensure project-state dirs exist before agents-post-create creates symlinks.
-  "initializeCommand": "mkdir -p \"${localWorkspaceFolder}/dotfiles/.claude\" \"${localWorkspaceFolder}/dotfiles/.gemini\" \"${localWorkspaceFolder}/dotfiles/.codex\" \"${localWorkspaceFolder}/dotfiles/.ssh\"",
+  "initializeCommand": "mkdir -p \"${localWorkspaceFolder}/dotfiles/.claude\" \"${localWorkspaceFolder}/dotfiles/.gemini\" \"${localWorkspaceFolder}/dotfiles/.codex\" \"${localWorkspaceFolder}/dotfiles/.hermes\" \"${localWorkspaceFolder}/dotfiles/.ssh\"",
 
   "mounts": [
     // Persist gh OAuth token across rebuilds via a named volume scoped to this
