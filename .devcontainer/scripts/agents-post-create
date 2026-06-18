@@ -4,7 +4,7 @@
 # Safe to re-run.
 set -euo pipefail
 
-PROJECT="/workspace/dotfiles"
+PROJECT="${AGENTS_DOTFILES_PROJECT:-/workspace/dotfiles}"
 
 log() { printf '[agents-post-create] %s\n' "$*"; }
 
@@ -29,9 +29,9 @@ link_one ".zshrc"
 link_one ".tmux.conf"
 link_one ".config"
 
-# --- 2. Project-only state dirs (.claude, .gemini, .codex) ----------------------------
+# --- 2. Project-only state dirs (.claude, .gemini, .codex, .hermes) -------------------
 # Runtime state: only in the project (gitignored), never baked into the image.
-for name in .claude .gemini .codex; do
+for name in .claude .gemini .codex .hermes; do
   mkdir -p "$PROJECT/$name"
   rm -rf "$HOME/$name"
   ln -s "$PROJECT/$name" "$HOME/$name"

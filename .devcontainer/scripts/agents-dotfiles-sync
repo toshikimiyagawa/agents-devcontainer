@@ -53,8 +53,8 @@ manifest_set() {
 is_excluded() {
   case "$1" in
     .gitignore|.zsh_history) return 0 ;;
-    .claude|.gemini|.codex|.ssh) return 0 ;;
-    .claude/*|.gemini/*|.codex/*|.ssh/*) return 0 ;;
+    .claude|.gemini|.codex|.hermes|.ssh) return 0 ;;
+    .claude/*|.gemini/*|.codex/*|.hermes/*|.ssh/*) return 0 ;;
   esac
   return 1
 }

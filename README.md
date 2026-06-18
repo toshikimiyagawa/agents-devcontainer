@@ -11,7 +11,7 @@ Claude Code, Gemini CLI, Codex CLI, Hermes Agent などのエージェントツ�
   - **Claude Code**: Anthropic によるターミナルベースの AI エージェント。
   - **Gemini CLI**: Google によるコードベース対応の AI エージェント。
   - **Codex CLI**: OpenAI によるターミナルベースの AI エージェント。
-  - **Hermes Agent**: NousResearch による自己改善型の自律 AI エージェント（永続メモリ・スキル学習・ブラウザ自動化）。初回利用時に `hermes setup` でプロバイダを設定する。
+  - **Hermes Agent**: NousResearch による自己改善型の自律 AI エージェント（永続メモリ・スキル学習・ブラウザ自動化）。状態は container 専用の `dotfiles/.hermes/` に永続化し、初回利用時に `hermes setup` でプロバイダを設定する。
   - **ai-sdd-guide**: Spec-Driven Development (SDD) フレームワーク。プロジェクトに個別に導入する。
 - **モダンな開発ツール**: uv (Python), Neovim, Tmux, Lazygit, Yazi 等を同梱。
 - **ゼロフリクション認証**: `gh auth login` 一度でトークンが named volume に永続化。rebuild 後も再認証不要。
@@ -220,7 +220,9 @@ Claude Code を起動してから、プロンプトで以下のスラッシュ�
 | `.tmux.conf` | tmux 設定 |
 | `.config/*` | starship / nvim / lazygit / yazi / git などのツール設定 |
 
-`.claude/` `.gemini/` `.codex/` `.ssh/` `.zsh_history` はランタイム/個人用のため追従対象外（gitignore 済み）。
+`.claude/` `.gemini/` `.codex/` `.hermes/` `.ssh/` `.zsh_history` はランタイム/個人用のため追従対象外（gitignore 済み）。
+
+Hermes Agent の container 内 state は `~/.hermes`（= `dotfiles/.hermes/` への symlink）に保存される。host `~/.hermes` とは共有しない。provider/model は container 内で `hermes setup` を実行するか、`dotfiles/.hermes/config.yaml` に設定する。
 
 ### upstream 更新の取り込み
 

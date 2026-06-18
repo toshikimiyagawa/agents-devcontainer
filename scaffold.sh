@@ -37,7 +37,7 @@ else
 
   # dotfiles at project root (gitignore-by-default model)
   DOTFILES="$TARGET/dotfiles"
-  mkdir -p "$DOTFILES/.claude" "$DOTFILES/.gemini" "$DOTFILES/.codex" "$DOTFILES/.ssh"
+  mkdir -p "$DOTFILES/.claude" "$DOTFILES/.gemini" "$DOTFILES/.codex" "$DOTFILES/.hermes" "$DOTFILES/.ssh"
   printf '*\n!.gitignore\n' > "$DOTFILES/.gitignore"
 
   # Copy base dotfiles from vendor and force-commit
@@ -89,7 +89,7 @@ JSON
   "workspaceMount": "source=\${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
   "workspaceFolder": "/workspace",
 
-  "initializeCommand": "mkdir -p \"\${localWorkspaceFolder}/dotfiles/.claude\" \"\${localWorkspaceFolder}/dotfiles/.gemini\" \"\${localWorkspaceFolder}/dotfiles/.codex\" \"\${localWorkspaceFolder}/dotfiles/.ssh\"",
+  "initializeCommand": "mkdir -p \"\${localWorkspaceFolder}/dotfiles/.claude\" \"\${localWorkspaceFolder}/dotfiles/.gemini\" \"\${localWorkspaceFolder}/dotfiles/.codex\" \"\${localWorkspaceFolder}/dotfiles/.hermes\" \"\${localWorkspaceFolder}/dotfiles/.ssh\"",
 
   "mounts": [
     "source=devcontainer-gh-\${devcontainerId},target=/home/ubuntu/.gh-config,type=volume"

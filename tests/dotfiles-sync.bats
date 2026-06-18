@@ -113,11 +113,12 @@ seed() {
 }
 
 # --- AC8: runtime/personal entries excluded ----------------------------------
-@test "excludes .claude .gemini .codex .ssh .zsh_history .gitignore" {
-  mkdir -p "$UPSTREAM_DIR/.claude" "$UPSTREAM_DIR/.gemini" "$UPSTREAM_DIR/.codex" "$UPSTREAM_DIR/.ssh"
+@test "excludes .claude .gemini .codex .hermes .ssh .zsh_history .gitignore" {
+  mkdir -p "$UPSTREAM_DIR/.claude" "$UPSTREAM_DIR/.gemini" "$UPSTREAM_DIR/.codex" "$UPSTREAM_DIR/.hermes" "$UPSTREAM_DIR/.ssh"
   echo x > "$UPSTREAM_DIR/.claude/state"
   echo x > "$UPSTREAM_DIR/.gemini/state"
   echo x > "$UPSTREAM_DIR/.codex/state"
+  echo x > "$UPSTREAM_DIR/.hermes/config.yaml"
   echo x > "$UPSTREAM_DIR/.ssh/id"
   echo x > "$UPSTREAM_DIR/.zsh_history"
   printf '*\n!.gitignore\n' > "$UPSTREAM_DIR/.gitignore"
@@ -128,10 +129,12 @@ seed() {
   [ ! -e "$PROJECT_DIR/.claude/state" ]
   [ ! -e "$PROJECT_DIR/.gemini/state" ]
   [ ! -e "$PROJECT_DIR/.codex/state" ]
+  [ ! -e "$PROJECT_DIR/.hermes/config.yaml" ]
   [ ! -e "$PROJECT_DIR/.ssh/id" ]
   [ ! -e "$PROJECT_DIR/.zsh_history" ]
   [ ! -e "$PROJECT_DIR/.gitignore" ]
   ! grep -q '.claude' "$MANIFEST"
+  ! grep -q '.hermes' "$MANIFEST"
   ! grep -q '.gitignore' "$MANIFEST"
 }
 
