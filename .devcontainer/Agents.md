@@ -34,8 +34,9 @@ Dockerfile       →  FROM ghcr.io/...  (このリポジトリ自身の dogfood 
   - `/workspace`: プロジェクトルートをバインドマウント。
   - `~/.gitconfig`, `~/.git-credentials`: **バインドマウントしない**。git 設定はコンテナ内の `/etc/gitconfig`（system レベル）で管理する（`agents-post-start` で書き込み）。ホストの gitconfig に含まれる OS 固有のパスがコンテナ内で壊れる問題を回避するため。
   - `~/.gh-config`: named volume（`devcontainer-gh-<devcontainerId>`）でマウント。`GH_CONFIG_DIR=/home/ubuntu/.gh-config` で gh CLI がここを参照する。rebuild 後もトークンが維持され、初回のみ `gh auth login` を実行すればよい。
-  - `~/.claude` は **ホストと共有しない**。`.devcontainer/dotfiles/.claude/` を symlink して、コンテナ専用の認証・履歴をワークスペース配下に隔離する（中身は gitignore 済み）。
-  - `initializeCommand` で `dotfiles/.claude`, `dotfiles/.gemini` ディレクトリの存在を保証すること。
+  - `~/.claude` は **ホストと共有しない**。`dotfiles/.claude/` を symlink して、コンテナ専用の認証・履歴をワークスペース配下に隔離する（中身は gitignore 済み）。
+  - `~/.hermes` は host `~/.hermes` と共有しない。`dotfiles/.hermes/` を symlink し、container 専用の Hermes 認証・履歴・memory・provider/model 設定を保持する（中身は gitignore 済み）。
+  - `initializeCommand` で `dotfiles/.claude`, `dotfiles/.gemini`, `dotfiles/.codex`, `dotfiles/.hermes` ディレクトリの存在を保証すること。
 
 ## dotfiles の仕組み（レイヤー構造）
 
@@ -58,7 +59,7 @@ export MY_API_KEY=...
 ```
 
 **バックアップとして焼き込まれないもの**（プロジェクト固有の状態）:
-- `.claude/`, `.gemini/` — AI エージェントの認証・履歴（gitignore 済み）
+- `.claude/`, `.gemini/`, `.codex/`, `.hermes/` — AI エージェントの認証・履歴・設定（gitignore 済み）
 - `.ssh/` — SSH 秘密鍵（gitignore 済み）
 - `.config/gh/` — gh CLI のトークン（named volume で管理）
 
@@ -89,7 +90,7 @@ git identity は `remoteEnv` 経由でホストの `GIT_AUTHOR_NAME` / `GIT_AUTH
 - `Claude Code` (claude)
 - `Gemini CLI` (gemini)
 - `Codex CLI` (codex) — OpenAI によるターミナルベースの AI エージェント。
-- `Hermes Agent` (hermes) — NousResearch による自己改善型の自律 AI エージェント。`USER ubuntu` で per-user インストール（コードは `~/.hermes`、コマンドは `~/.local/bin/hermes`、Claude Code と同じレイアウト）。ブラウザ自動化（Playwright/Chromium）込み。初回利用時に `hermes setup` でプロバイダを設定する。
+- `Hermes Agent` (hermes) — NousResearch による自己改善型の自律 AI エージェント。`USER ubuntu` で per-user インストール（コードは `~/.hermes`、コマンドは `~/.local/bin/hermes`、Claude Code と同じレイアウト）。ブラウザ自動化（Playwright/Chromium）込み。runtime state は `~/.hermes`（symlink 先 = `dotfiles/.hermes/`）に永続化し、host `~/.hermes` とは共有しない。初回利用時に `hermes setup` でプロバイダを設定する。
 - `ai-sdd-guide` — Spec-Driven Development フレームワーク。`scaffold.sh` が git submodule として `vendor/ai-sdd-guide` に配置する。ルール: `vendor/ai-sdd-guide/rules/`、ドキュメント: `vendor/ai-sdd-guide/docs/`。
 - `Superpowers` — Claude Code plugin。`devcontainer up` には組み込まず、Claude 内で `/plugin install superpowers@claude-plugins-official` を実行して opt-in する。状態は `~/.claude/`（symlink 先 = `dotfiles/.claude/`）に永続化。
 - `GitHub CLI` (gh) — git 認証に使用。
