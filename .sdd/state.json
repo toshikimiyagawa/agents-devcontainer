@@ -1,5 +1,5 @@
 {
-  "feature": "hermes-config-persist",
+  "feature": "hermes-superpowers-bootstrap",
   "tier": 2,
-  "phase": "done"
+  "phase": "implement"
 }

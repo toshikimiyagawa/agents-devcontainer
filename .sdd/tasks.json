@@ -6,5 +6,13 @@
     "assigned_agent": "codex",
     "handoff": "specs/hermes-config-persist/handoff.md",
     "blocked_reason": null
+  },
+  {
+    "id": "hermes-superpowers-bootstrap",
+    "phase": "tasks",
+    "status": "pending",
+    "assigned_agent": null,
+    "handoff": "specs/hermes-superpowers-bootstrap/handoff.md",
+    "blocked_reason": null
   }
 ]
