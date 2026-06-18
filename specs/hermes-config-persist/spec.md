@@ -1,7 +1,7 @@
 # Spec: hermes-config-persist
 
 - Tier: 2
-- Status: draft
+- Status: frozen
 - Feature slug: hermes-config-persist
 
 ## 背景 / 意図

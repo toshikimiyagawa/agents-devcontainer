@@ -1,0 +1,10 @@
+[
+  {
+    "id": "hermes-config-persist",
+    "phase": "tasks",
+    "status": "pending",
+    "assigned_agent": "codex",
+    "handoff": "specs/hermes-config-persist/handoff.md",
+    "blocked_reason": null
+  }
+]
