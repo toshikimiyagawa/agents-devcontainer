@@ -38,6 +38,30 @@ for name in .claude .gemini .codex .hermes; do
   log "linked $name -> $PROJECT/$name"
 done
 
+# --- 2a. Hermes Superpowers ---------------------------------------------------
+bootstrap_hermes_superpowers() {
+  local marker="$HOME/.hermes/.agents-superpowers-installed"
+
+  if [[ -f "$marker" ]]; then
+    log "Hermes superpowers already bootstrapped"
+    return 0
+  fi
+
+  if ! command -v hermes >/dev/null 2>&1; then
+    log "skip Hermes superpowers bootstrap (hermes command not found)"
+    return 0
+  fi
+
+  if hermes skills install --yes skills-sh/obra/superpowers; then
+    touch "$marker"
+    log "bootstrapped Hermes superpowers"
+  else
+    log "warn: Hermes superpowers bootstrap failed (non-fatal)"
+  fi
+}
+
+bootstrap_hermes_superpowers
+
 # --- 2b. .zsh_history ---------------------------------------------------------
 # Persist shell history across rebuilds in the workspace (gitignored).
 touch "$PROJECT/.zsh_history"

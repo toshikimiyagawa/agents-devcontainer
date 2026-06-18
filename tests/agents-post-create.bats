@@ -52,3 +52,62 @@ teardown() {
   [ "$(readlink "$HOME/.gemini")" = "$AGENTS_DOTFILES_PROJECT/.gemini" ]
   [ "$(readlink "$HOME/.codex")" = "$AGENTS_DOTFILES_PROJECT/.codex" ]
 }
+
+@test "installs Hermes superpowers after linking Hermes state" {
+  cat > "$TMPDIR/bin/hermes" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$HERMES_CALL_LOG"
+test -L "$HOME/.hermes"
+test "$(readlink "$HOME/.hermes")" = "$AGENTS_DOTFILES_PROJECT/.hermes"
+exit 0
+SH
+  chmod +x "$TMPDIR/bin/hermes"
+  export HERMES_CALL_LOG="$TMPDIR/hermes-calls.log"
+
+  run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  run cat "$HERMES_CALL_LOG"
+  [ "$output" = "skills install --yes skills-sh/obra/superpowers" ]
+  [ -f "$AGENTS_DOTFILES_PROJECT/.hermes/.agents-superpowers-installed" ]
+}
+
+@test "skips Hermes superpowers install when marker exists" {
+  mkdir -p "$AGENTS_DOTFILES_PROJECT/.hermes"
+  touch "$AGENTS_DOTFILES_PROJECT/.hermes/.agents-superpowers-installed"
+  cat > "$TMPDIR/bin/hermes" <<'SH'
+#!/usr/bin/env bash
+echo "unexpected hermes call" >&2
+exit 99
+SH
+  chmod +x "$TMPDIR/bin/hermes"
+
+  run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Hermes superpowers already bootstrapped"* ]]
+}
+
+@test "keeps postCreate successful when Hermes superpowers install fails" {
+  cat > "$TMPDIR/bin/hermes" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$HERMES_CALL_LOG"
+exit 42
+SH
+  chmod +x "$TMPDIR/bin/hermes"
+  export HERMES_CALL_LOG="$TMPDIR/hermes-calls.log"
+
+  run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  script_output="$output"
+  run cat "$HERMES_CALL_LOG"
+  [ "$output" = "skills install --yes skills-sh/obra/superpowers" ]
+  [ ! -f "$AGENTS_DOTFILES_PROJECT/.hermes/.agents-superpowers-installed" ]
+  [[ "$script_output" == *"warn: Hermes superpowers bootstrap failed"* ]]
+}
+
+@test "skips Hermes superpowers bootstrap when hermes command is unavailable" {
+  PATH="$TMPDIR/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+  run bash "$SCRIPT"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"skip Hermes superpowers bootstrap (hermes command not found)"* ]]
+  [ ! -f "$AGENTS_DOTFILES_PROJECT/.hermes/.agents-superpowers-installed" ]
+}
