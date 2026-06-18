@@ -60,5 +60,8 @@ AGENTS="$BATS_TEST_DIRNAME/../.devcontainer/Agents.md"
 @test "Agents.md documents Hermes superpowers bootstrap" {
   grep -q "skills-sh/obra/superpowers" "$AGENTS"
   grep -q "dotfiles/.hermes" "$AGENTS"
+  grep -q "postCreate" "$AGENTS"
+  grep -q ".agents-superpowers-installed" "$AGENTS"
+  grep -q "skip" "$AGENTS"
   grep -q "non-fatal" "$AGENTS"
 }
