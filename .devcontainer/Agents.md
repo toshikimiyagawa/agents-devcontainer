@@ -35,9 +35,9 @@ Dockerfile       →  FROM ghcr.io/...  (このリポジトリ自身の dogfood 
   - `~/.gitconfig`, `~/.git-credentials`: **バインドマウントしない**。git 設定はコンテナ内の `/etc/gitconfig`（system レベル）で管理する（`agents-post-start` で書き込み）。ホストの gitconfig に含まれる OS 固有のパスがコンテナ内で壊れる問題を回避するため。
   - `~/.gh-config`: named volume（`devcontainer-gh-<devcontainerId>`）でマウント。`GH_CONFIG_DIR=/home/ubuntu/.gh-config` で gh CLI がここを参照する。rebuild 後もトークンが維持され、初回のみ `gh auth login` を実行すればよい。
   - `~/.claude` は **ホストと共有しない**。`dotfiles/.claude/` を symlink して、コンテナ専用の認証・履歴をワークスペース配下に隔離する（中身は gitignore 済み）。
-  - `~/.hermes` は host `~/.hermes` と共有しない。`dotfiles/.hermes/` を symlink し、container 専用の Hermes 認証・履歴・memory・provider/model 設定を保持する（中身は gitignore 済み）。
+  - `~/.hermes` は host `~/.hermes` と共有しない。`~/.hermes` 全体は symlink せず、Hermes 本体 `~/.hermes/hermes-agent` は container image 側に残す。`config.yaml`, `.env`, `memories/` は `dotfiles/.hermes/` へ symlink し、`skills/` は Hermes の realpath 検証に通すため `~/.hermes/skills` を実体 directory として `dotfiles/.hermes/skills` から復元・install 成功後に同期する（中身は gitignore 済み）。
   - `initializeCommand` で `dotfiles/.claude`, `dotfiles/.gemini`, `dotfiles/.codex`, `dotfiles/.hermes` ディレクトリの存在を保証すること。
-  - Hermes superpowers bootstrap は `.hermes` symlink 作成後に `agents-post-create` で実行する。`hermes skills install --yes skills-sh/obra/superpowers` が成功したら `dotfiles/.hermes/.agents-superpowers-installed` を marker とし、再実行時は skip する。network/registry failure は non-fatal warning として扱う。
+  - Hermes superpowers bootstrap は Hermes state 復元後に `agents-post-create` で実行する。`hermes skills install --yes skills-sh/obra/superpowers` が成功したら `dotfiles/.hermes/.agents-superpowers-installed` を marker とし、installed skill を `dotfiles/.hermes/skills` へ同期する。再実行時は marker と実体 skill の両方がある場合だけ skip する。network/registry failure は non-fatal warning として扱う。
 
 ## dotfiles の仕組み（レイヤー構造）
 
@@ -60,7 +60,7 @@ export MY_API_KEY=...
 ```
 
 **バックアップとして焼き込まれないもの**（プロジェクト固有の状態）:
-- `.claude/`, `.gemini/`, `.codex/`, `.hermes/` — AI エージェントの認証・履歴・設定（gitignore 済み）
+- `.claude/`, `.gemini/`, `.codex/`, `.hermes/` — AI エージェントの認証・履歴・設定（gitignore 済み）。Hermes は `~/.hermes/hermes-agent` を container image 側に残し、state subpaths だけを `.hermes/` に永続化する。`skills/` は symlink せず復元・同期する。
 - `.ssh/` — SSH 秘密鍵（gitignore 済み）
 - `.config/gh/` — gh CLI のトークン（named volume で管理）
 
@@ -91,7 +91,7 @@ git identity は `remoteEnv` 経由でホストの `GIT_AUTHOR_NAME` / `GIT_AUTH
 - `Claude Code` (claude)
 - `Gemini CLI` (gemini)
 - `Codex CLI` (codex) — OpenAI によるターミナルベースの AI エージェント。
-- `Hermes Agent` (hermes) — NousResearch による自己改善型の自律 AI エージェント。`USER ubuntu` で per-user インストール（コードは `~/.hermes`、コマンドは `~/.local/bin/hermes`、Claude Code と同じレイアウト）。ブラウザ自動化（Playwright/Chromium）込み。runtime state は `~/.hermes`（symlink 先 = `dotfiles/.hermes/`）に永続化し、host `~/.hermes` とは共有しない。`postCreate` で `skills-sh/obra/superpowers` を bootstrap する。初回利用時に `hermes setup` でプロバイダを設定する。
+- `Hermes Agent` (hermes) — NousResearch による自己改善型の自律 AI エージェント。`USER ubuntu` で per-user インストール（本体は `~/.hermes/hermes-agent`、コマンドは `~/.local/bin/hermes`、Claude Code と同じレイアウト）。ブラウザ自動化（Playwright/Chromium）込み。Hermes 本体は container image 側に残し、runtime state subpaths は `dotfiles/.hermes/` に永続化する。host `~/.hermes` とは共有しない。`skills/` は symlink せず復元・同期する。`postCreate` で `skills-sh/obra/superpowers` を bootstrap する。初回利用時に `hermes setup` でプロバイダを設定する。
 - `ai-sdd-guide` — Spec-Driven Development フレームワーク。`scaffold.sh` が git submodule として `vendor/ai-sdd-guide` に配置する。ルール: `vendor/ai-sdd-guide/rules/`、ドキュメント: `vendor/ai-sdd-guide/docs/`。
 - `Superpowers` — Claude Code plugin。`devcontainer up` には組み込まず、Claude 内で `/plugin install superpowers@claude-plugins-official` を実行して opt-in する。状態は `~/.claude/`（symlink 先 = `dotfiles/.claude/`）に永続化。
 - `GitHub CLI` (gh) — git 認証に使用。

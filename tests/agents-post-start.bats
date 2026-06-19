@@ -89,3 +89,14 @@ teardown() {
   WORKSPACE="$(dirname "$PROJECT")" run bash "$POST_START"
   [ "$status" -eq 0 ]
 }
+
+@test "syncs Hermes skills from HOME back to project dotfiles" {
+  mkdir -p "$HOME/.hermes/skills/custom-skill"
+  echo "custom skill" > "$HOME/.hermes/skills/custom-skill/SKILL.md"
+
+  WORKSPACE="$(dirname "$PROJECT")" run bash "$POST_START"
+  [ "$status" -eq 0 ]
+  [ -f "$PROJECT/.hermes/skills/custom-skill/SKILL.md" ]
+  run cat "$PROJECT/.hermes/skills/custom-skill/SKILL.md"
+  [ "$output" = "custom skill" ]
+}

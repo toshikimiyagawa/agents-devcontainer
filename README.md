@@ -11,7 +11,7 @@ Claude Code, Gemini CLI, Codex CLI, Hermes Agent などのエージェントツ�
   - **Claude Code**: Anthropic によるターミナルベースの AI エージェント。
   - **Gemini CLI**: Google によるコードベース対応の AI エージェント。
   - **Codex CLI**: OpenAI によるターミナルベースの AI エージェント。
-  - **Hermes Agent**: NousResearch による自己改善型の自律 AI エージェント（永続メモリ・スキル学習・ブラウザ自動化）。状態は container 専用の `dotfiles/.hermes/` に永続化し、`postCreate` で `skills-sh/obra/superpowers` を non-interactive に bootstrap する。初回利用時に `hermes setup` でプロバイダを設定する。
+  - **Hermes Agent**: NousResearch による自己改善型の自律 AI エージェント（永続メモリ・スキル学習・ブラウザ自動化）。本体 `~/.hermes/hermes-agent` は container image 側に残し、設定や skills などの状態だけを container 専用の `dotfiles/.hermes/` に永続化する。`skills/` は Hermes の検証に通すため `~/.hermes/skills` を実体 directory とし、`dotfiles/.hermes/skills` から復元・同期する。`postCreate` で `skills-sh/obra/superpowers` を non-interactive に bootstrap する。初回利用時に `hermes setup` でプロバイダを設定する。
   - **ai-sdd-guide**: Spec-Driven Development (SDD) フレームワーク。プロジェクトに個別に導入する。
 - **モダンな開発ツール**: uv (Python), Neovim, Tmux, Lazygit, Yazi 等を同梱。
 - **ゼロフリクション認証**: `gh auth login` 一度でトークンが named volume に永続化。rebuild 後も再認証不要。
@@ -222,7 +222,7 @@ Claude Code を起動してから、プロンプトで以下のスラッシュ�
 
 `.claude/` `.gemini/` `.codex/` `.hermes/` `.ssh/` `.zsh_history` はランタイム/個人用のため追従対象外（gitignore 済み）。
 
-Hermes Agent の container 内 state は `~/.hermes`（= `dotfiles/.hermes/` への symlink）に保存される。host `~/.hermes` とは共有しない。provider/model は container 内で `hermes setup` を実行するか、`dotfiles/.hermes/config.yaml` に設定する。`agents-post-create` は `hermes skills install --yes skills-sh/obra/superpowers` を一度だけ実行し、成功後は `dotfiles/.hermes/.agents-superpowers-installed` marker で再実行を抑制する。install 失敗は warning として扱い、devcontainer setup は継続する。
+Hermes Agent の container 内 state は `~/.hermes` 全体ではなく、`config.yaml`, `.env`, `skills/`, `memories/` を `dotfiles/.hermes/` に保存する。Hermes 本体の `~/.hermes/hermes-agent` は container image 側に残す。host `~/.hermes` とは共有しない。`config.yaml`, `.env`, `memories/` は `dotfiles/.hermes/` への symlink、`skills/` は Hermes の realpath 検証に通すため `~/.hermes/skills` を実体 directory として `dotfiles/.hermes/skills` から復元・install 成功後に同期する。provider/model は container 内で `hermes setup` を実行するか、`dotfiles/.hermes/config.yaml` に設定する。`agents-post-create` は `hermes skills install --yes skills-sh/obra/superpowers` を一度だけ実行し、成功後は `dotfiles/.hermes/.agents-superpowers-installed` marker で再実行を抑制する。install 失敗は warning として扱い、devcontainer setup は継続する。
 
 ### upstream 更新の取り込み
 

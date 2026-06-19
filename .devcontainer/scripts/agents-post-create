@@ -29,20 +29,73 @@ link_one ".zshrc"
 link_one ".tmux.conf"
 link_one ".config"
 
-# --- 2. Project-only state dirs (.claude, .gemini, .codex, .hermes) -------------------
+# --- 2. Project-only state dirs (.claude, .gemini, .codex) --------------------
 # Runtime state: only in the project (gitignored), never baked into the image.
-for name in .claude .gemini .codex .hermes; do
+for name in .claude .gemini .codex; do
   mkdir -p "$PROJECT/$name"
   rm -rf "$HOME/$name"
   ln -s "$PROJECT/$name" "$HOME/$name"
   log "linked $name -> $PROJECT/$name"
 done
 
-# --- 2a. Hermes Superpowers ---------------------------------------------------
-bootstrap_hermes_superpowers() {
-  local marker="$HOME/.hermes/.agents-superpowers-installed"
+# --- 2a. Hermes state ---------------------------------------------------------
+# Hermes installs its executable payload under ~/.hermes/hermes-agent, and the
+# ~/.local/bin/hermes wrapper points there directly. Keep ~/.hermes as a real
+# directory; only persist user-managed state entries into project dotfiles.
+persist_hermes_state() {
+  mkdir -p "$PROJECT/.hermes"
 
-  if [[ -f "$marker" ]]; then
+  if [[ -L "$HOME/.hermes" ]]; then
+    rm -f "$HOME/.hermes"
+  fi
+  mkdir -p "$HOME/.hermes"
+
+  local name
+  for name in memories; do
+    if [[ -e "$HOME/.hermes/$name" && ! -L "$HOME/.hermes/$name" && ! -e "$PROJECT/.hermes/$name" ]]; then
+      mv "$HOME/.hermes/$name" "$PROJECT/.hermes/$name"
+    else
+      rm -rf "$HOME/.hermes/$name"
+    fi
+    mkdir -p "$PROJECT/.hermes/$name"
+    ln -s "$PROJECT/.hermes/$name" "$HOME/.hermes/$name"
+    log "linked .hermes/$name -> $PROJECT/.hermes/$name"
+  done
+
+  # Hermes validates installed skill paths with realpath, so ~/.hermes/skills
+  # must remain a real directory. Restore persisted skills into it instead of
+  # symlinking the directory out of ~/.hermes.
+  if [[ -L "$HOME/.hermes/skills" ]]; then
+    rm -f "$HOME/.hermes/skills"
+  fi
+  mkdir -p "$PROJECT/.hermes/skills" "$HOME/.hermes/skills"
+  if compgen -G "$PROJECT/.hermes/skills/*" >/dev/null 2>&1; then
+    cp -a "$PROJECT/.hermes/skills/." "$HOME/.hermes/skills/"
+  elif compgen -G "$HOME/.hermes/skills/*" >/dev/null 2>&1; then
+    cp -a "$HOME/.hermes/skills/." "$PROJECT/.hermes/skills/"
+  fi
+  log "restored .hermes/skills from $PROJECT/.hermes/skills"
+
+  for name in config.yaml .env; do
+    if [[ -e "$HOME/.hermes/$name" && ! -L "$HOME/.hermes/$name" && ! -e "$PROJECT/.hermes/$name" ]]; then
+      mv "$HOME/.hermes/$name" "$PROJECT/.hermes/$name"
+    else
+      rm -f "$HOME/.hermes/$name"
+    fi
+    touch "$PROJECT/.hermes/$name"
+    ln -s "$PROJECT/.hermes/$name" "$HOME/.hermes/$name"
+    log "linked .hermes/$name -> $PROJECT/.hermes/$name"
+  done
+}
+
+persist_hermes_state
+
+# --- 2b. Hermes Superpowers ---------------------------------------------------
+bootstrap_hermes_superpowers() {
+  local marker="$PROJECT/.hermes/.agents-superpowers-installed"
+  local skill_dir="$HOME/.hermes/skills/superpowers"
+
+  if [[ -f "$marker" && -f "$skill_dir/SKILL.md" ]]; then
     log "Hermes superpowers already bootstrapped"
     return 0
   fi
@@ -53,6 +106,10 @@ bootstrap_hermes_superpowers() {
   fi
 
   if hermes skills install --yes skills-sh/obra/superpowers; then
+    if [[ -d "$skill_dir" ]]; then
+      rm -rf "$PROJECT/.hermes/skills/superpowers"
+      cp -a "$skill_dir" "$PROJECT/.hermes/skills/superpowers"
+    fi
     touch "$marker"
     log "bootstrapped Hermes superpowers"
   else
@@ -62,7 +119,7 @@ bootstrap_hermes_superpowers() {
 
 bootstrap_hermes_superpowers
 
-# --- 2b. .zsh_history ---------------------------------------------------------
+# --- 2c. .zsh_history ---------------------------------------------------------
 # Persist shell history across rebuilds in the workspace (gitignored).
 touch "$PROJECT/.zsh_history"
 rm -f "$HOME/.zsh_history"

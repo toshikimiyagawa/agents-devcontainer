@@ -44,11 +44,13 @@ AGENTS="$BATS_TEST_DIRNAME/../.devcontainer/Agents.md"
 @test "README documents Hermes state persistence" {
   grep -q "dotfiles/.hermes" "$README"
   grep -q "host.*~/.hermes.*共有しない" "$README"
+  grep -q "hermes-agent.*残" "$README"
 }
 
 @test "Agents.md documents Hermes state persistence" {
   grep -q "dotfiles/.hermes" "$AGENTS"
   grep -q "host.*~/.hermes.*共有しない" "$AGENTS"
+  grep -q "hermes-agent.*残" "$AGENTS"
 }
 
 @test "README documents Hermes superpowers bootstrap" {
