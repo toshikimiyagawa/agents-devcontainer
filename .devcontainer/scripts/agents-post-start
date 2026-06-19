@@ -16,6 +16,18 @@ if [[ -d "$PROJECT/.ssh" ]] && compgen -G "$PROJECT/.ssh/*" >/dev/null 2>&1; the
   log "synced .ssh from project dotfiles"
 fi
 
+# --- Hermes skills sync -------------------------------------------------------
+# ~/.hermes/skills must stay a real directory for Hermes' realpath checks.
+# Sync it back to project dotfiles on each container start so skills installed
+# during a previous session are preserved outside the container filesystem.
+if [[ -d "$HOME/.hermes/skills" && ! -L "$HOME/.hermes/skills" ]]; then
+  mkdir -p "$PROJECT/.hermes/skills"
+  if compgen -G "$HOME/.hermes/skills/*" >/dev/null 2>&1; then
+    cp -a "$HOME/.hermes/skills/." "$PROJECT/.hermes/skills/"
+    log "synced Hermes skills to project dotfiles"
+  fi
+fi
+
 # --- safe.directory (idempotent) ---
 git config --system --get-all safe.directory 2>/dev/null | grep -qx /workspace \
   || sudo git config --system --add safe.directory /workspace
