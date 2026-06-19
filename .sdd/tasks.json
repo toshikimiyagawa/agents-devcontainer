@@ -14,5 +14,13 @@
     "assigned_agent": "codex",
     "handoff": "specs/hermes-superpowers-bootstrap/handoff.md",
     "blocked_reason": null
+  },
+  {
+    "id": "hermes-install-layout-fix",
+    "phase": "done",
+    "status": "completed",
+    "assigned_agent": "codex",
+    "handoff": null,
+    "blocked_reason": null
   }
 ]
