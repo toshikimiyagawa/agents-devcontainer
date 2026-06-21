@@ -27,7 +27,11 @@ setup() {
   done
 
   if [[ -f "$SOURCE_SMOKE" ]]; then
-    cp "$SOURCE_SMOKE" "$REPO/scripts/smoke-devcontainer.sh"
+    if [[ -f /.dockerenv ]]; then
+      sed 's/ || -f \/.dockerenv//' "$SOURCE_SMOKE" > "$REPO/scripts/smoke-devcontainer.sh"
+    else
+      cp "$SOURCE_SMOKE" "$REPO/scripts/smoke-devcontainer.sh"
+    fi
   else
     printf '#!/usr/bin/env bash\nexit 127\n' > "$REPO/scripts/smoke-devcontainer.sh"
   fi
@@ -170,7 +174,11 @@ run_smoke() {
 }
 
 @test "rejects execution inside a devcontainer" {
-  REMOTE_CONTAINERS=true run_smoke
+  if [[ -f /.dockerenv ]]; then
+    run bash "$SOURCE_SMOKE"
+  else
+    REMOTE_CONTAINERS=true run_smoke
+  fi
   [ "$status" -ne 0 ]
   [ "$status" -ne 127 ]
   [[ "$output" == *"must be run from the host"* ]]
