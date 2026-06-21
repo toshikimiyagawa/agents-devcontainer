@@ -296,3 +296,24 @@ run_smoke() {
   grep -F 'scripts/smoke-devcontainer.sh' "$workflow"
   ! grep -Eq 'docker[[:space:]]+push|docker/login-action|packages:[[:space:]]*write' "$workflow"
 }
+
+@test "README defines the host-only devcontainer smoke gate" {
+  readme="$BATS_TEST_DIRNAME/../README.md"
+  grep -F 'scripts/smoke-devcontainer.sh' "$readme"
+  grep -F 'host 側' "$readme"
+  grep -F '`bats tests/` だけでは完了ではない' "$readme"
+  grep -F -- '--remove-existing-container' "$readme"
+  grep -F 'Hermes' "$readme" | grep -F 'warning'
+  grep -F 'PR description' "$readme"
+  for path in \
+    '.devcontainer/Dockerfile.base' \
+    '.devcontainer/Dockerfile' \
+    '.devcontainer/devcontainer.json' \
+    '.devcontainer/scripts/*' \
+    'dotfiles/**' \
+    'scaffold.sh' \
+    'scaffold/**' \
+    '.github/workflows/*'; do
+    grep -F "$path" "$readme"
+  done
+}

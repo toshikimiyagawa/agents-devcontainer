@@ -157,6 +157,40 @@ devcontainer up --workspace-folder .
 devcontainer exec --workspace-folder . zsh
 ```
 
+### PR 前の devcontainer smoke
+
+devcontainer 関連の変更では、最終確認を devcontainer の外にある host 側から実行する。
+実装や単体テストは devcontainer 内で進めてよいが、`bats tests/` だけでは完了ではない。
+
+host に `bats`、利用可能な Docker daemon、`devcontainer` CLI、`git`、`jq` があり、
+`~/.ssh` directory が存在することを確認してから実行する。
+
+```bash
+scripts/smoke-devcontainer.sh
+```
+
+この script は host Bats、現在 checkout の local base image build、dogfood
+devcontainer の新規作成、lifecycle command、container 内 Bats、主要 tool、Hermes
+永続化 layout を順に検証する。`--remove-existing-container` を使うため、現在の
+dogfood container を置き換える可能性がある。
+
+Hermes の command と永続化 layout は必須である。clean rebuild では host の provider/model
+設定を import しないため、Hermes 未設定は明示的な warning として扱い、smoke 自体は失敗させない。
+
+次の path を変更した場合は、この smoke を実行する。
+
+- `.devcontainer/Dockerfile.base`
+- `.devcontainer/Dockerfile`
+- `.devcontainer/devcontainer.json`
+- `.devcontainer/scripts/*`
+- `dotfiles/**`
+- `scaffold.sh`
+- `scaffold/**`
+- `.github/workflows/*` の devcontainer/build/test 関連
+
+host smoke を実行できなかった場合は、理由を PR description に記載する。その時点では未完了であり、
+作成者による host smoke または GitHub Actions の full smoke が成功するまで merge しない。
+
 ### 4. GitHub 認証（初回のみ）
 
 コンテナ内で以下を実行します。トークンは named volume に保存されるため、**rebuild 後も再認証は不要**です。
