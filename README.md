@@ -134,15 +134,19 @@ colima start --cpu 4 --memory 8
 #### Windows (WSL2)
 Ubuntu 等の WSL2 ディストリビューション内で Docker Engine をインストールしてください。
 
-### 2. ホストの git identity を環境変数にセット（推奨）
+### 2. コンテナの git identity を設定
+
+dogfood 設定は、空値による Git config の上書きを避けるため、ホストの
+`GIT_AUTHOR_NAME` / `GIT_AUTHOR_EMAIL` を自動転送しません。コンテナ内で
+`gh auth login` を済ませると、次回起動時に GitHub アカウント情報から取得します。
+
+GitHub の name / email を取得できない場合は起動時に警告します。必要な値を
+コンテナ内で明示的に設定してください。
 
 ```bash
-# ~/.zshrc または ~/.bashrc に追加
-export GIT_AUTHOR_NAME="Your Name"
-export GIT_AUTHOR_EMAIL="you@example.com"
+sudo git config --system user.name "Your Name"
+sudo git config --system user.email "you@example.com"
 ```
-
-未設定でも、コンテナ内で `gh auth login` を済ませれば GitHub アカウント情報から自動取得します。
 
 ### 3. コンテナの起動
 
