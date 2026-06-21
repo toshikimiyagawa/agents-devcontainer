@@ -1,5 +1,5 @@
 {
   "feature": "devcontainer-rebuild-smoke",
   "tier": 2,
-  "phase": "implement"
+  "phase": "verify"
 }
