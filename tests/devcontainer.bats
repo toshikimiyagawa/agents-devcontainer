@@ -45,3 +45,13 @@ BASE_JSON="$BATS_TEST_DIRNAME/../scaffold/devcontainer.base.json"
   run grep -q 'ホストの git identity を環境変数にセット' "$BATS_TEST_DIRNAME/../README.md"
   [ "$status" -ne 0 ]
 }
+
+@test "base image installs bats for in-container smoke tests" {
+  run awk '
+    /apt-get install -y --no-install-recommends/ { in_install = 1 }
+    in_install && /^[[:space:]]*bats([[:space:]\\]|$)/ { found = 1 }
+    in_install && /rm -rf \/var\/lib\/apt\/lists/ { in_install = 0 }
+    END { exit(found ? 0 : 1) }
+  ' "$BATS_TEST_DIRNAME/../.devcontainer/Dockerfile.base"
+  [ "$status" -eq 0 ]
+}
