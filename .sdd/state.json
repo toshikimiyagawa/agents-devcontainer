@@ -1,5 +1,5 @@
 {
-  "feature": "hermes-install-layout-fix",
+  "feature": "dogfood-git-identity",
   "tier": 1,
-  "phase": "done"
+  "phase": "spec"
 }
