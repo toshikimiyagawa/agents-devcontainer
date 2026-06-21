@@ -182,11 +182,13 @@ Hermes の command と永続化 layout は必須である。clean rebuild では
 - `.devcontainer/Dockerfile.base`
 - `.devcontainer/Dockerfile`
 - `.devcontainer/devcontainer.json`
-- `.devcontainer/scripts/*`
+- `.devcontainer/scripts/**`
 - `dotfiles/**`
 - `scaffold.sh`
 - `scaffold/**`
-- `.github/workflows/*` の devcontainer/build/test 関連
+- `scripts/smoke-devcontainer.sh`
+- `tests/smoke-devcontainer.bats`
+- `.github/workflows/smoke-devcontainer.yml`
 
 host smoke を実行できなかった場合は、理由を PR description に記載する。その時点では未完了であり、
 作成者による host smoke または GitHub Actions の full smoke が成功するまで merge しない。

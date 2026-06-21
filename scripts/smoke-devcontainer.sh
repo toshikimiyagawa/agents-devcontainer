@@ -114,8 +114,10 @@ log "stage: hermes-check"
   --config "$tmp_dir/devcontainer.json" \
   bash -lc '
     for name in config.yaml .env memories; do
-      if [[ ! -L "$HOME/.hermes/$name" ]]; then
-        printf "invalid Hermes persistence layout: %s must be a symlink\n" "$name" >&2
+      expected="/workspace/dotfiles/.hermes/$name"
+      if [[ ! -L "$HOME/.hermes/$name" ]] \
+        || [[ "$(readlink "$HOME/.hermes/$name")" != "$expected" ]]; then
+        printf "invalid Hermes persistence layout: %s must link to %s\n" "$name" "$expected" >&2
         exit 1
       fi
     done

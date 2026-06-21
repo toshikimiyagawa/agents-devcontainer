@@ -8,9 +8,23 @@ setup() {
   REPO="$TEST_TMP/repo"
   BIN="$TEST_TMP/bin"
   CALLS="$TEST_TMP/calls"
+  CONTAINER_HOME="$TEST_TMP/container-home"
+  CONTAINER_BIN="$TEST_TMP/container-bin"
+  CONTAINER_DOTFILES="$TEST_TMP/container-workspace/dotfiles/.hermes"
   mkdir -p "$REPO/scripts" "$REPO/tests" "$REPO/.devcontainer" "$BIN"
+  mkdir -p "$CONTAINER_HOME/.hermes" "$CONTAINER_BIN"
+  mkdir -p "$CONTAINER_DOTFILES/memories" "$CONTAINER_HOME/.hermes/skills"
   : > "$CALLS"
   printf '{}\n' > "$REPO/.devcontainer/devcontainer.json"
+  printf 'model: test\n' > "$CONTAINER_DOTFILES/config.yaml"
+  printf 'API_KEY=test\n' > "$CONTAINER_DOTFILES/.env"
+  ln -s "$CONTAINER_DOTFILES/config.yaml" "$CONTAINER_HOME/.hermes/config.yaml"
+  ln -s "$CONTAINER_DOTFILES/.env" "$CONTAINER_HOME/.hermes/.env"
+  ln -s "$CONTAINER_DOTFILES/memories" "$CONTAINER_HOME/.hermes/memories"
+  for tool in codex gemini claude hermes gh yq; do
+    printf '#!/usr/bin/env bash\nexit 0\n' > "$CONTAINER_BIN/$tool"
+    chmod +x "$CONTAINER_BIN/$tool"
+  done
 
   if [[ -f "$SOURCE_SMOKE" ]]; then
     cp "$SOURCE_SMOKE" "$REPO/scripts/smoke-devcontainer.sh"
@@ -24,7 +38,7 @@ setup() {
   make_fake_git
   make_fake_devcontainer
 
-  export CALLS REPO TEST_TMP
+  export CALLS REPO TEST_TMP CONTAINER_HOME CONTAINER_BIN CONTAINER_DOTFILES
   export BATS_BIN="$BIN/bats"
   export DOCKER_BIN="$BIN/docker"
   export DEVCONTAINER_BIN="$BIN/devcontainer"
@@ -33,7 +47,7 @@ setup() {
   export FAKE_GIT_STATUS_INITIAL=""
   export FAKE_GIT_STATUS_FINAL=""
   unset REMOTE_CONTAINERS FAKE_DOCKER_INFO_FAIL FAKE_DOCKER_BUILD_FAIL
-  unset FAKE_DEVCONTAINER_FAIL FAKE_HERMES_UNCONFIGURED FAKE_HERMES_LAYOUT_FAIL
+  unset FAKE_DEVCONTAINER_FAIL FAKE_MISSING_TOOL
 }
 
 teardown() {
@@ -115,10 +129,19 @@ if [[ "$subcommand" = "up" ]]; then
   done
 fi
 
-if [[ "$subcommand" = "exec" && "$*" = *"Hermes provider/model"* ]]; then
-  if [[ -n "${FAKE_HERMES_LAYOUT_FAIL:-}" ]]; then exit 44; fi
-  if [[ -n "${FAKE_HERMES_UNCONFIGURED:-}" ]]; then
-    printf '%s\n' 'WARNING: Hermes provider/model configuration is not configured' >&2
+if [[ "$subcommand" = "exec" ]]; then
+  command_string="${@: -1}"
+  if [[ "$command_string" = *"for tool in codex"* ]]; then
+    if [[ -n "${FAKE_MISSING_TOOL:-}" ]]; then
+      rm -f "$CONTAINER_BIN/$FAKE_MISSING_TOOL"
+    fi
+    HOME="$CONTAINER_HOME" PATH="$CONTAINER_BIN:/usr/bin:/bin" bash -c "$command_string"
+    exit $?
+  fi
+  if [[ "$command_string" = *"invalid Hermes persistence layout"* ]]; then
+    command_string="${command_string//\/workspace\/dotfiles\/.hermes/$CONTAINER_DOTFILES}"
+    HOME="$CONTAINER_HOME" PATH="$CONTAINER_BIN:/usr/bin:/bin" bash -c "$command_string"
+    exit $?
   fi
 fi
 EOF
@@ -135,13 +158,14 @@ run_smoke() {
     JQ_BIN="$JQ_BIN" \
     REAL_JQ_FOR_FAKE="$REAL_JQ_FOR_FAKE" \
     CALLS="$CALLS" REPO="$REPO" TEST_TMP="$TEST_TMP" \
+    CONTAINER_HOME="$CONTAINER_HOME" CONTAINER_BIN="$CONTAINER_BIN" \
+    CONTAINER_DOTFILES="$CONTAINER_DOTFILES" \
     FAKE_GIT_STATUS_INITIAL="${FAKE_GIT_STATUS_INITIAL:-}" \
     FAKE_GIT_STATUS_FINAL="${FAKE_GIT_STATUS_FINAL:-}" \
     FAKE_DOCKER_INFO_FAIL="${FAKE_DOCKER_INFO_FAIL:-}" \
     FAKE_DOCKER_BUILD_FAIL="${FAKE_DOCKER_BUILD_FAIL:-}" \
     FAKE_DEVCONTAINER_FAIL="${FAKE_DEVCONTAINER_FAIL:-}" \
-    FAKE_HERMES_UNCONFIGURED="${FAKE_HERMES_UNCONFIGURED:-}" \
-    FAKE_HERMES_LAYOUT_FAIL="${FAKE_HERMES_LAYOUT_FAIL:-}" \
+    FAKE_MISSING_TOOL="${FAKE_MISSING_TOOL:-}" \
     bash "$REPO/scripts/smoke-devcontainer.sh"
 }
 
@@ -222,16 +246,26 @@ run_smoke() {
 }
 
 @test "warns without failing when Hermes provider configuration is absent" {
-  export FAKE_HERMES_UNCONFIGURED=1
+  : > "$CONTAINER_DOTFILES/config.yaml"
+  : > "$CONTAINER_DOTFILES/.env"
   run_smoke
   [ "$status" -eq 0 ]
   [[ "$output" == *"WARNING: Hermes provider/model configuration is not configured"* ]]
 }
 
 @test "fails when the Hermes persistence layout check fails" {
-  export FAKE_HERMES_LAYOUT_FAIL=1
+  rm "$CONTAINER_HOME/.hermes/config.yaml"
+  ln -s "$TEST_TMP/wrong-config.yaml" "$CONTAINER_HOME/.hermes/config.yaml"
   run_smoke
-  [ "$status" -eq 44 ]
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"invalid Hermes persistence layout"* ]]
+}
+
+@test "fails with the missing required tool name" {
+  export FAKE_MISSING_TOOL=gemini
+  run_smoke
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"missing required tool: gemini"* ]]
 }
 
 @test "removes temporary files after success and failure" {
@@ -309,11 +343,13 @@ run_smoke() {
     '.devcontainer/Dockerfile.base' \
     '.devcontainer/Dockerfile' \
     '.devcontainer/devcontainer.json' \
-    '.devcontainer/scripts/*' \
+    '.devcontainer/scripts/**' \
     'dotfiles/**' \
     'scaffold.sh' \
     'scaffold/**' \
-    '.github/workflows/*'; do
+    'scripts/smoke-devcontainer.sh' \
+    'tests/smoke-devcontainer.bats' \
+    '.github/workflows/smoke-devcontainer.yml'; do
     grep -F "$path" "$readme"
   done
 }
