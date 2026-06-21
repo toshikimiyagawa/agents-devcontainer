@@ -267,3 +267,32 @@ run_smoke() {
   [ "$status" -eq 0 ]
   grep -F "$REPO/.devcontainer/Dockerfile.base" "$CALLS"
 }
+
+@test "workflow covers every required smoke path" {
+  workflow="$BATS_TEST_DIRNAME/../.github/workflows/smoke-devcontainer.yml"
+  [ -f "$workflow" ]
+  for path in \
+    '.devcontainer/Dockerfile.base' \
+    '.devcontainer/Dockerfile' \
+    '.devcontainer/devcontainer.json' \
+    '.devcontainer/scripts/**' \
+    'dotfiles/**' \
+    'scaffold.sh' \
+    'scaffold/**' \
+    'scripts/smoke-devcontainer.sh' \
+    'tests/smoke-devcontainer.bats' \
+    '.github/workflows/smoke-devcontainer.yml'; do
+    grep -F "$path" "$workflow"
+  done
+}
+
+@test "workflow installs prerequisites and invokes the shared smoke script" {
+  workflow="$BATS_TEST_DIRNAME/../.github/workflows/smoke-devcontainer.yml"
+  [ -f "$workflow" ]
+  grep -F 'actions/checkout@v4' "$workflow"
+  grep -F 'bats-core/bats-action@3.0.0' "$workflow"
+  grep -F 'npm install -g @devcontainers/cli' "$workflow"
+  grep -F 'mkdir -p "$HOME/.ssh"' "$workflow"
+  grep -F 'scripts/smoke-devcontainer.sh' "$workflow"
+  ! grep -Eq 'docker[[:space:]]+push|docker/login-action|packages:[[:space:]]*write' "$workflow"
+}

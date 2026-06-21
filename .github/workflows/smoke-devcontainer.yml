@@ -1,0 +1,36 @@
+name: smoke-devcontainer
+
+on:
+  pull_request:
+    paths:
+      - '.devcontainer/Dockerfile.base'
+      - '.devcontainer/Dockerfile'
+      - '.devcontainer/devcontainer.json'
+      - '.devcontainer/scripts/**'
+      - 'dotfiles/**'
+      - 'scaffold.sh'
+      - 'scaffold/**'
+      - 'scripts/smoke-devcontainer.sh'
+      - 'tests/smoke-devcontainer.bats'
+      - '.github/workflows/smoke-devcontainer.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install bats-core
+        uses: bats-core/bats-action@3.0.0
+
+      - name: Install Dev Container CLI
+        run: npm install -g @devcontainers/cli
+
+      - name: Prepare host SSH directory
+        run: mkdir -p "$HOME/.ssh"
+
+      - name: Run full devcontainer smoke
+        run: scripts/smoke-devcontainer.sh
