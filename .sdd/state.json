@@ -1,5 +1,5 @@
 {
-  "feature": "dogfood-git-identity",
-  "tier": 1,
-  "phase": "verify"
+  "feature": "devcontainer-rebuild-smoke",
+  "tier": 2,
+  "phase": "spec"
 }
