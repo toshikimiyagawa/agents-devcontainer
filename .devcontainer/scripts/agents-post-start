@@ -54,8 +54,8 @@ fi
 [[ -n "$email" ]] && sudo git config --system user.email "$email"
 
 missing_identity=()
-effective_name="$(git config --system --get user.name 2>/dev/null || true)"
-effective_email="$(git config --system --get user.email 2>/dev/null || true)"
+effective_name="$(git config --get user.name 2>/dev/null || true)"
+effective_email="$(git config --get user.email 2>/dev/null || true)"
 [[ -n "$effective_name" ]] || missing_identity+=(user.name)
 [[ -n "$effective_email" ]] || missing_identity+=(user.email)
 if (( ${#missing_identity[@]} > 0 )); then

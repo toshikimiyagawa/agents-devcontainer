@@ -52,6 +52,29 @@ if [[ "$1 $2 $3" == "config --system --get" ]]; then
   esac
   exit 0
 fi
+if [[ "$1 $2" == "config --get" ]]; then
+  case "$3" in
+    user.name)
+      if [[ -f "$MOCK_STATE/effective.user.name" ]]; then
+        cat "$MOCK_STATE/effective.user.name"
+      elif [[ -f "$MOCK_STATE/user.name" ]]; then
+        cat "$MOCK_STATE/user.name"
+      else
+        exit 1
+      fi
+      ;;
+    user.email)
+      if [[ -f "$MOCK_STATE/effective.user.email" ]]; then
+        cat "$MOCK_STATE/effective.user.email"
+      elif [[ -f "$MOCK_STATE/user.email" ]]; then
+        cat "$MOCK_STATE/user.email"
+      else
+        exit 1
+      fi
+      ;;
+  esac
+  exit 0
+fi
 if [[ "$1 $2" == "config --system" && "$3" == "user.name" ]]; then
   printf '%s' "$4" > "$MOCK_STATE/user.name"
   printf 'user.name=%s\n' "$4" >> "$MOCK_STATE/writes"
@@ -241,4 +264,39 @@ teardown() {
   [ ! -e "$MOCK_STATE/user.email" ]
   assert_output_contains "WARNING"
   assert_output_contains "user.email"
+}
+
+@test "effective non-system identity prevents a warning" {
+  printf 'Global Name' > "$MOCK_STATE/effective.user.name"
+  printf 'global@example.com' > "$MOCK_STATE/effective.user.email"
+
+  WORKSPACE="$(dirname "$PROJECT")" run env \
+    -u GIT_AUTHOR_NAME -u GIT_AUTHOR_EMAIL \
+    bash "$POST_START"
+
+  [ "$status" -eq 0 ]
+  assert_output_not_contains "WARNING"
+}
+
+@test "explicit email is preserved while gh fills the missing name" {
+  GH_AUTHENTICATED=1 GH_NAME="GitHub Name" GH_EMAIL="github@example.com" \
+    GIT_AUTHOR_EMAIL="explicit@example.com" WORKSPACE="$(dirname "$PROJECT")" \
+    run env -u GIT_AUTHOR_NAME bash "$POST_START"
+
+  [ "$status" -eq 0 ]
+  [ "$(cat "$MOCK_STATE/user.name")" = "GitHub Name" ]
+  [ "$(cat "$MOCK_STATE/user.email")" = "explicit@example.com" ]
+}
+
+@test "missing name warning identifies user.name" {
+  GH_AUTHENTICATED=1 GH_NAME="" GH_EMAIL="github@example.com" \
+    WORKSPACE="$(dirname "$PROJECT")" run env \
+    -u GIT_AUTHOR_NAME -u GIT_AUTHOR_EMAIL \
+    bash "$POST_START"
+
+  [ "$status" -eq 0 ]
+  [ ! -e "$MOCK_STATE/user.name" ]
+  [ "$(cat "$MOCK_STATE/user.email")" = "github@example.com" ]
+  assert_output_contains "WARNING"
+  assert_output_contains "user.name"
 }
