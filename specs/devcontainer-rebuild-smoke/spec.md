@@ -18,6 +18,8 @@ commands and required tools work in the resulting container.
 
 This feature adds:
 
+- `bats` to the base image so the rebuilt devcontainer can run the repository test
+  suite without downloading tools during smoke execution;
 - a host-only `scripts/smoke-devcontainer.sh` entrypoint;
 - automated tests for the script's orchestration and failure behavior;
 - a GitHub Actions full-smoke job for pull requests that touch relevant paths; and
@@ -113,6 +115,13 @@ of these areas:
 The workflow does not publish `agents-devcontainer:pr`. Existing image-build and Bats
 jobs remain in place; this job adds runtime verification rather than replacing them.
 
+### Base-image test runtime
+
+`.devcontainer/Dockerfile.base` installs the distribution-provided `bats` package.
+The smoke does not install or download a separate Bats runtime. The existing
+base-image build continues to prove that the package is available on both supported
+architectures.
+
 ### Documentation gate
 
 The README maintainer section states:
@@ -163,7 +172,9 @@ checked before merge.
    working-tree state unchanged.
 5. A successful `devcontainer up` runs both configured lifecycle commands; any
    `postCreateCommand` or `postStartCommand` failure fails the smoke.
-6. The script runs `bats tests/` inside the rebuilt devcontainer.
+6. `.devcontainer/Dockerfile.base` provides `bats`, and the script runs
+   `bats tests/` inside the rebuilt devcontainer without installing or downloading
+   test tooling during smoke execution.
 7. The script verifies `codex`, `gemini`, `claude`, `hermes`, `gh`, and `yq` inside the
    rebuilt devcontainer and fails with the missing command's name.
 8. A missing Hermes provider/model configuration produces a visible warning without
