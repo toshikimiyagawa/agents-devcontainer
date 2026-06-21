@@ -25,6 +25,8 @@ setup() {
     printf '#!/usr/bin/env bash\nexit 0\n' > "$CONTAINER_BIN/$tool"
     chmod +x "$CONTAINER_BIN/$tool"
   done
+  ln -s "$(command -v grep)" "$CONTAINER_BIN/grep"
+  ln -s "$(command -v readlink)" "$CONTAINER_BIN/readlink"
 
   if [[ -f "$SOURCE_SMOKE" ]]; then
     if [[ -f /.dockerenv ]]; then
@@ -139,12 +141,12 @@ if [[ "$subcommand" = "exec" ]]; then
     if [[ -n "${FAKE_MISSING_TOOL:-}" ]]; then
       rm -f "$CONTAINER_BIN/$FAKE_MISSING_TOOL"
     fi
-    HOME="$CONTAINER_HOME" PATH="$CONTAINER_BIN:/usr/bin:/bin" bash -c "$command_string"
+    HOME="$CONTAINER_HOME" PATH="$CONTAINER_BIN" /bin/bash -c "$command_string"
     exit $?
   fi
   if [[ "$command_string" = *"invalid Hermes persistence layout"* ]]; then
     command_string="${command_string//\/workspace\/dotfiles\/.hermes/$CONTAINER_DOTFILES}"
-    HOME="$CONTAINER_HOME" PATH="$CONTAINER_BIN:/usr/bin:/bin" bash -c "$command_string"
+    HOME="$CONTAINER_HOME" PATH="$CONTAINER_BIN" /bin/bash -c "$command_string"
     exit $?
   fi
 fi
