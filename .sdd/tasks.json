@@ -30,5 +30,13 @@
     "assigned_agent": "codex",
     "handoff": null,
     "blocked_reason": null
+  },
+  {
+    "id": "devcontainer-rebuild-smoke",
+    "phase": "implement",
+    "status": "pending",
+    "assigned_agent": "codex",
+    "handoff": "specs/devcontainer-rebuild-smoke/handoff.md",
+    "blocked_reason": null
   }
 ]
