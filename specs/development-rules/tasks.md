@@ -1,59 +1,67 @@
 # Tasks: development-rules
 
 実装計画の詳細は `docs/superpowers/plans/2026-06-22-development-rules.md` を参照。
-TDD（RED→GREEN）と頻繁な commit を守ること。
+TDD（負例を先に RED 化 → 実装で GREEN）と頻繁な commit を守ること。
 
-## Task 1 — tests/pre-pr-check.bats（RED）
-- [x] `tests/pre-pr-check.bats` を作成する
-- [x] `bats tests/pre-pr-check.bats` で RED を確認する
-- [x] commit
+PR #54 レビュー是正版。Issue #50 トレース表は spec.md を正本とする。
 
-## Task 2 — scripts/pre-pr-check.sh（GREEN）
-- [x] `scripts/pre-pr-check.sh` を実装する、`chmod +x`
-- [x] `bats tests/pre-pr-check.bats` で GREEN を確認する
-- [x] `bash -n scripts/pre-pr-check.sh` を確認する
-- [x] commit
+## T-smoke-ev — smoke 証跡を成功時のみ atomic 生成（AC11）
+- [ ] `tests/smoke-devcontainer.bats` に「成功時のみ証跡生成・SHA/環境/marker 記録・失敗時は非生成」の RED を追加
+- [ ] `scripts/smoke-devcontainer.sh` を成功時のみ atomic 書き込みに修正
+- [ ] GREEN 確認 → commit
 
-## Task 3 — .gitignore + smoke-devcontainer.yml
-- [x] `.gitignore` に `.sdd/smoke-evidence.txt` を追加する
-- [x] `smoke-devcontainer.yml` に evidence artifact upload ステップを追加する
-- [x] commit
+## T-pathlist — devcontainer 関連 path list の単一 source of truth（AC14, TECH-5）
+- [ ] path list の単一定義（`scripts/devcontainer-paths.sh` 等）を作る
+- [ ] `tests/pre-pr-check.bats` に script と workflow の drift 検出 test を RED 追加
+- [ ] `scripts/pre-pr-check.sh` と `smoke-devcontainer.yml` を同じリスト参照に修正
+- [ ] GREEN 確認 → commit
 
-## Task 4 — docs/development/（3ファイル）
-- [x] `docs/development/environment-matrix.md` を作成する
-- [x] `docs/development/smoke-guide.md` を作成する
-- [x] `docs/development/blocker-handling.md` を作成する
-- [x] commit
+## T-prepr — pre-pr-check.sh fail-closed + 証跡内容検証 + schema 検証（AC12, AC13, AC15）
+- [ ] 負例 RED を `tests/pre-pr-check.bats` に追加: base ref 取得失敗 fail-closed / detached HEAD /
+  dirty・staged・unstaged / empty・forged・stale・wrong-HEAD evidence / malformed state JSON /
+  current feature 欠落・未完了・blocked
+- [ ] `scripts/pre-pr-check.sh` を全経路 fail-closed・証跡内容検証・schema 検証に修正
+- [ ] `bash -n` + GREEN 確認 → commit
 
-## Task 5 — AGENTS.md（5セクション）
-- [x] environment matrix / phase gates / Definition of Done / reporting template / blocker handling を追記する
-- [x] commit
+## T-tests — 全負例 RED→GREEN の確認（AC17, ISS-15）
+- [ ] T-smoke-ev / T-prepr / T-pathlist の負例が修正前 RED・修正後 GREEN であることを確認
 
-## Task 6 — PR template
-- [x] `.github/pull_request_template.md` を作成する
-- [x] commit
+## T-gitid — dogfood 空 GIT_AUTHOR 非 forwarding 固定（AC16, TECH-1）
+- [ ] `tests/devcontainer.bats` に dogfood config が空 GIT_AUTHOR/COMMITTER を forwarding しない RED/固定 test を追加
+- [ ] GREEN 確認 → commit
 
-## Task 7 — specs/development-rules/ artifacts
-- [ ] `specs/development-rules/spec.md` を作成する
-- [ ] `specs/development-rules/plan.md` を作成する
-- [ ] `specs/development-rules/tasks.md` を作成する（この file）
+## T-agents — AGENTS.md 是正（AC1, AC4, AC5, AC6, AC7, AC8）
+- [ ] canonical 正本宣言・smoke policy・DoD を phase+status へ修正・reporting template・blocker handling
+- [ ] `tests/development-rules.bats` に doc 内容 grep test を追加
+- [ ] GREEN 確認 → commit
+
+## T-docs — docs/development/ 是正・追加（AC2, AC9）
+- [ ] `docs/development/rules-inventory.md` を新規作成（重複・矛盾・欠落の一覧）
+- [ ] environment-matrix / smoke-guide / blocker-handling を証跡仕様に整合
+- [ ] `tests/development-rules.bats` で内容を検証
 - [ ] commit
 
-## Task 8 — 総合検証
+## T-prtmpl — PR template 是正（AC10）
+- [ ] 検証済み smoke 証跡・spec path・sdd-reviewer 結果欄に整合
+- [ ] commit
+
+## T-state — SDD 状態整合（AC18）
+- [ ] `.sdd/tasks.json` に development-rules を schema-valid で追加
+- [ ] `.sdd/state.json` を development-rules の実 phase に向ける
+- [ ] この tasks.md の完了状態を実態に一致させる
+- [ ] commit
+
+## T-verify — 総合検証（AC19, ISS-16, ISS-17）
 - [ ] `bats tests/` 全通過
-- [ ] `for f in .devcontainer/scripts/*; do bash -n "$f"; done`
-- [ ] `bash -n scripts/*.sh`
+- [ ] `for f in .devcontainer/scripts/*; do bash -n "$f"; done` + `bash -n scripts/*.sh`
+- [ ] host smoke 再実行（成功証跡を再生成）
+- [ ] 独立 sdd-reviewer を Issue #50 起点で実行し PASS
 
-## 受け入れ基準 ↔ テスト 対応表
+## T-publish — 公開（ISS-18）
+- [ ] PR #54 を更新（または再作成）し required CI green を確認
 
-| AC | 検証 |
-|---|---|
-| 1-5 (AGENTS.md セクション) | Task5 / 目視確認 |
-| 6-8 (docs/development/) | Task4 / 目視確認 |
-| 9 (pre-pr-check.sh 基本動作) | `pre-pr-check.bats: exits 0 when no devcontainer changes...` |
-| 10 (smoke 証跡チェック) | `pre-pr-check.bats: exits 1 when devcontainer change detected but no smoke evidence` |
-| 11 (PR template) | Task6 / 目視確認 |
-| 12 (.gitignore) | Task3 / `grep smoke-evidence .gitignore` |
-| 13 (bats テスト存在) | Task1 |
-| 14 (bats tests/ 全通過) | Task8 |
-| 15 (bash -n) | Task2 + Task8 |
+## 受け入れ基準 ↔ test 対応
+
+spec.md の「Issue AC → spec AC → task → test トレース表」を参照。全 behavioral AC は
+`tests/pre-pr-check.bats` / `tests/smoke-devcontainer.bats` / `tests/devcontainer.bats` /
+`tests/development-rules.bats` の test に対応する（ISS-15）。
