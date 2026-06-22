@@ -1,5 +1,9 @@
 # Project Guidelines
 
+**この AGENTS.md がこのリポジトリ開発ルールの canonical な正本である。** README と
+`.devcontainer/Agents.md` は概要と本ファイルへのリンクに限定し、ここと矛盾するルールを
+複製しない。詳細解説は `docs/development/` に置き、本ファイルからリンクする。
+
 This project follows Spec-Driven Development (SDD).
 Read the canonical rules before any work:
 - `vendor/ai-sdd-guide/rules/core.md`
@@ -107,12 +111,25 @@ scripts/pre-pr-check.sh
 
 ## Definition of Done
 
-| status | 意味 |
-|---|---|
-| `implementation_complete` | `tasks.md` 全タスク完了 + `bats tests/` green。smoke / SDD review / PR は未実施 |
-| `issue_complete` | verify gate 通過 + CI green + PR merged |
+「実装完了」と「issue 完了」は別物。`.sdd/tasks.json` は canonical な
+`vendor/ai-sdd-guide/orchestration/schema/tasks.schema.json` に従い、status は
+`pending` / `in_progress` / `completed` / `blocked` のみ。**新しい status 値を導入しない。**
+この区別は既存の `phase` と `status` の組み合わせで表現する:
 
-「実装が終わった」と「issue が完了した」は別物。`.sdd/tasks.json` の `status` フィールドに設定する。
+| 状態 | phase | status | 意味 |
+|---|---|---|---|
+| 実装完了 | `implement` | `completed` | `tasks.md` 全タスク完了 + `bats tests/` green。host smoke / SDD review / PR は未実施 |
+| issue 完了 | `done` | `completed` | verify gate 通過 + host smoke green + CI green + PR merged |
+
+「実装完了」に到達しても issue は完了ではない。host smoke・SDD review・PR・CI が残る。
+
+## smoke / draft / merge policy
+
+- devcontainer 関連変更（`scripts/devcontainer-paths.txt` のパターンに一致）は、
+  **host full smoke が green になるまで完了扱いにしない**。
+- 検証済み smoke 証跡（`scripts/smoke-devcontainer.sh` が生成する `.sdd/smoke-evidence.txt`、
+  HEAD 一致・成功マーカー必須）がない devcontainer 関連 PR は **ready にせず draft に留める**。
+- smoke を skip / warning 化して gate を通さない。証跡は `scripts/pre-pr-check.sh` が内容検証する。
 
 ## Reporting template
 
@@ -121,7 +138,7 @@ scripts/pre-pr-check.sh
 ```
 ## Phase report: <phase名>
 - spec: specs/<feature>/spec.md
-- current status: <implementation_complete | issue_complete | blocked>
+- current phase / status: <implement|verify|done> / <completed|blocked>（schema 準拠）
 - changed files: <リスト>
 - bats tests/: PASS / FAIL (<N> tests)
 - bash -n: PASS / FAIL

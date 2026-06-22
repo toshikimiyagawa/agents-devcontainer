@@ -15,12 +15,13 @@
 
 ## Devcontainer 関連変更
 
-*`.devcontainer/`・`dotfiles/`・`scaffold*`・`scripts/smoke-devcontainer.sh` 等を変更した場合のみ記入。該当なしの場合は「N/A」と記入。*
+*`scripts/devcontainer-paths.txt` のパターンに一致する変更がある場合のみ記入。該当なしは「N/A」。*
+*host smoke が green になるまで完了扱いにしない。検証済み証跡がない場合は draft に留めること。*
 
 - host smoke: <!-- PASS / NOT_RUN（理由） -->
 
 <details>
-<summary>smoke 証跡（scripts/smoke-devcontainer.sh の出力末尾）</summary>
+<summary>smoke 証跡（.sdd/smoke-evidence.txt の内容。SMOKE_RESULT=pass と COMMIT==HEAD が必須）</summary>
 
 ```
 <!-- .sdd/smoke-evidence.txt の内容を貼り付け。devcontainer 関連変更がない場合は N/A -->
