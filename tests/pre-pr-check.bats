@@ -33,9 +33,11 @@ _make_git() {
 for arg in "\$@"; do
   case "\$arg" in
     --abbrev-ref) printf '%s\n' "$branch"; exit 0 ;;
-    --name-only)  printf '%s\n' "$changed"; exit 0 ;;
+    --name-only)  [ -n "$changed" ] && printf '%s\n' "$changed"; exit 0 ;;
   esac
 done
+printf 'fake-git: unexpected call: %s\n' "\$*" >&2
+exit 1
 SH
   chmod +x "$BIN/git"
 }
