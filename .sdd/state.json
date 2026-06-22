@@ -1,5 +1,5 @@
 {
-  "feature": "devcontainer-rebuild-smoke",
+  "feature": "development-rules",
   "tier": 2,
   "phase": "verify"
 }

@@ -6,50 +6,49 @@ TDD（負例を先に RED 化 → 実装で GREEN）と頻繁な commit を守�
 PR #54 レビュー是正版。Issue #50 トレース表は spec.md を正本とする。
 
 ## T-smoke-ev — smoke 証跡を成功時のみ atomic 生成（AC11）
-- [ ] `tests/smoke-devcontainer.bats` に「成功時のみ証跡生成・SHA/環境/marker 記録・失敗時は非生成」の RED を追加
-- [ ] `scripts/smoke-devcontainer.sh` を成功時のみ atomic 書き込みに修正
-- [ ] GREEN 確認 → commit
+- [x] `tests/smoke-devcontainer.bats` に「成功時のみ証跡生成・SHA/環境/marker 記録・失敗時は非生成」の RED を追加
+- [x] `scripts/smoke-devcontainer.sh` を成功時のみ atomic 書き込みに修正
+- [x] GREEN 確認 → commit
 
 ## T-pathlist — devcontainer 関連 path list の単一 source of truth（AC14, TECH-5）
-- [ ] path list の単一定義（`scripts/devcontainer-paths.sh` 等）を作る
-- [ ] `tests/pre-pr-check.bats` に script と workflow の drift 検出 test を RED 追加
-- [ ] `scripts/pre-pr-check.sh` と `smoke-devcontainer.yml` を同じリスト参照に修正
-- [ ] GREEN 確認 → commit
+- [x] path list の単一定義（`scripts/devcontainer-paths.txt`）を作る
+- [x] `tests/pre-pr-check.bats` に script と workflow の drift 検出 test を RED 追加
+- [x] `scripts/pre-pr-check.sh` と `smoke-devcontainer.yml` を同じリスト参照に修正
+- [x] GREEN 確認 → commit
 
 ## T-prepr — pre-pr-check.sh fail-closed + 証跡内容検証 + schema 検証（AC12, AC13, AC15）
-- [ ] 負例 RED を `tests/pre-pr-check.bats` に追加: base ref 取得失敗 fail-closed / detached HEAD /
+- [x] 負例 RED を `tests/pre-pr-check.bats` に追加: base ref 取得失敗 fail-closed / detached HEAD /
   dirty・staged・unstaged / empty・forged・stale・wrong-HEAD evidence / malformed state JSON /
   current feature 欠落・未完了・blocked
-- [ ] `scripts/pre-pr-check.sh` を全経路 fail-closed・証跡内容検証・schema 検証に修正
-- [ ] `bash -n` + GREEN 確認 → commit
+- [x] `scripts/pre-pr-check.sh` を全経路 fail-closed・証跡内容検証・schema 検証に修正
+- [x] `bash -n` + GREEN 確認 → commit
 
 ## T-tests — 全負例 RED→GREEN の確認（AC17, ISS-15）
-- [ ] T-smoke-ev / T-prepr / T-pathlist の負例が修正前 RED・修正後 GREEN であることを確認
+- [x] T-smoke-ev / T-prepr / T-pathlist の負例が修正前 RED・修正後 GREEN であることを確認
 
 ## T-gitid — dogfood 空 GIT_AUTHOR 非 forwarding 固定（AC16, TECH-1）
-- [ ] `tests/devcontainer.bats` に dogfood config が空 GIT_AUTHOR/COMMITTER を forwarding しない RED/固定 test を追加
-- [ ] GREEN 確認 → commit
+- [x] `tests/devcontainer.bats` の既存 test `dogfood and consumer configs do not forward git identity` で固定済み（ae6cb3c で修正済み、新規変更不要）
 
 ## T-agents — AGENTS.md 是正（AC1, AC4, AC5, AC6, AC7, AC8）
-- [ ] canonical 正本宣言・smoke policy・DoD を phase+status へ修正・reporting template・blocker handling
-- [ ] `tests/development-rules.bats` に doc 内容 grep test を追加
-- [ ] GREEN 確認 → commit
+- [x] canonical 正本宣言・smoke policy・DoD を phase+status へ修正・reporting template・blocker handling
+- [x] `tests/development-rules.bats` に doc 内容 grep test を追加
+- [x] GREEN 確認 → commit
 
 ## T-docs — docs/development/ 是正・追加（AC2, AC9）
-- [ ] `docs/development/rules-inventory.md` を新規作成（重複・矛盾・欠落の一覧）
-- [ ] environment-matrix / smoke-guide / blocker-handling を証跡仕様に整合
-- [ ] `tests/development-rules.bats` で内容を検証
-- [ ] commit
+- [x] `docs/development/rules-inventory.md` を新規作成（重複・矛盾・欠落の一覧）
+- [x] environment-matrix / smoke-guide / blocker-handling を証跡仕様に整合
+- [x] `tests/development-rules.bats` で内容を検証
+- [x] commit
 
 ## T-prtmpl — PR template 是正（AC10）
-- [ ] 検証済み smoke 証跡・spec path・sdd-reviewer 結果欄に整合
-- [ ] commit
+- [x] 検証済み smoke 証跡・spec path・sdd-reviewer 結果欄に整合
+- [x] commit
 
 ## T-state — SDD 状態整合（AC18）
-- [ ] `.sdd/tasks.json` に development-rules を schema-valid で追加
-- [ ] `.sdd/state.json` を development-rules の実 phase に向ける
-- [ ] この tasks.md の完了状態を実態に一致させる
-- [ ] commit
+- [x] `.sdd/tasks.json` に development-rules を schema-valid で追加
+- [x] `.sdd/state.json` を development-rules の実 phase に向ける
+- [x] この tasks.md の完了状態を実態に一致させる
+- [x] commit
 
 ## T-verify — 総合検証（AC19, ISS-16, ISS-17）
 - [ ] `bats tests/` 全通過
