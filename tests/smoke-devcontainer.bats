@@ -108,6 +108,8 @@ if [[ "$*" == *"status --porcelain=v1 --untracked-files=all"* ]]; then
     fi
     printf '%s' "${FAKE_GIT_STATUS_FINAL:-${FAKE_GIT_STATUS_INITIAL:-}}"
   fi
+elif [[ "$*" == *"rev-parse HEAD"* ]]; then
+  printf '%s\n' 'cafebabecafebabecafebabecafebabecafebabe'
 fi
 EOF
   chmod +x "$BIN/git"
@@ -441,22 +443,40 @@ EOF
   grep -F "$REPO/.devcontainer/Dockerfile.base" "$CALLS"
 }
 
+@test "writes verified smoke evidence on success" {
+  run_smoke
+  [ "$status" -eq 0 ]
+  evidence="$REPO/.sdd/smoke-evidence.txt"
+  [ -s "$evidence" ]
+  grep -qF 'SMOKE_RESULT=pass' "$evidence"
+  grep -qF 'COMMIT=cafebabecafebabecafebabecafebabecafebabe' "$evidence"
+  # no leftover atomic temp file
+  ! ls "$REPO/.sdd/".smoke-evidence.* >/dev/null 2>&1
+}
+
+@test "does not write smoke evidence when a stage fails" {
+  export FAKE_DEVCONTAINER_FAIL=up
+  run_smoke
+  [ "$status" -ne 0 ]
+  [ ! -f "$REPO/.sdd/smoke-evidence.txt" ]
+}
+
+@test "does not write smoke evidence when cleanup detects a dirty tree" {
+  export FAKE_GIT_STATUS_FINAL=' M dotfiles/.zshrc'
+  run_smoke
+  [ "$status" -ne 0 ]
+  [ ! -f "$REPO/.sdd/smoke-evidence.txt" ]
+}
+
 @test "workflow covers every required smoke path" {
   workflow="$BATS_TEST_DIRNAME/../.github/workflows/smoke-devcontainer.yml"
+  canon="$BATS_TEST_DIRNAME/../scripts/devcontainer-paths.txt"
   [ -f "$workflow" ]
-  for path in \
-    '.devcontainer/Dockerfile.base' \
-    '.devcontainer/Dockerfile' \
-    '.devcontainer/devcontainer.json' \
-    '.devcontainer/scripts/**' \
-    'dotfiles/**' \
-    'scaffold.sh' \
-    'scaffold/**' \
-    'scripts/smoke-devcontainer.sh' \
-    'tests/smoke-devcontainer.bats' \
-    '.github/workflows/smoke-devcontainer.yml'; do
+  [ -f "$canon" ]
+  while IFS= read -r path; do
+    [[ "$path" =~ ^[[:space:]]*(#|$) ]] && continue
     grep -F "$path" "$workflow"
-  done
+  done < "$canon"
 }
 
 @test "workflow installs prerequisites and invokes the shared smoke script" {
@@ -478,17 +498,10 @@ EOF
   grep -F -- '--remove-existing-container' "$readme"
   grep -F 'Hermes' "$readme" | grep -F 'warning'
   grep -F 'PR description' "$readme"
-  for path in \
-    '.devcontainer/Dockerfile.base' \
-    '.devcontainer/Dockerfile' \
-    '.devcontainer/devcontainer.json' \
-    '.devcontainer/scripts/**' \
-    'dotfiles/**' \
-    'scaffold.sh' \
-    'scaffold/**' \
-    'scripts/smoke-devcontainer.sh' \
-    'tests/smoke-devcontainer.bats' \
-    '.github/workflows/smoke-devcontainer.yml'; do
+  canon="$BATS_TEST_DIRNAME/../scripts/devcontainer-paths.txt"
+  [ -f "$canon" ]
+  while IFS= read -r path; do
+    [[ "$path" =~ ^[[:space:]]*(#|$) ]] && continue
     grep -F "$path" "$readme"
-  done
+  done < "$canon"
 }

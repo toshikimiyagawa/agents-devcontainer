@@ -27,6 +27,23 @@ stage() {
   log "stage: $current_stage"
 }
 
+# Write the success evidence atomically. Called only from the cleanup success
+# path so that a dirty-tree or cleanup failure never produces trusted evidence.
+write_evidence() {
+  evidence_dir="$REPO_ROOT/.sdd"
+  evidence="$evidence_dir/smoke-evidence.txt"
+  mkdir -p "$evidence_dir" || return 1
+  evidence_tmp="$(mktemp "$evidence_dir/.smoke-evidence.XXXXXX")" || return 1
+  {
+    printf 'SMOKE_RESULT=pass\n'
+    printf 'COMMIT=%s\n' "$("$GIT_BIN" -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
+    printf 'DATE=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    printf 'HOST=%s\n' "$(uname -srm 2>/dev/null || echo unknown)"
+    printf 'DOCKER=%s\n' "$("$DOCKER_BIN" version --format '{{.Server.Version}}' 2>/dev/null || echo unknown)"
+  } > "$evidence_tmp" || { rm -f "$evidence_tmp"; return 1; }
+  mv -f "$evidence_tmp" "$evidence"
+}
+
 on_error() {
   error_status="$?"
   trap - ERR
@@ -82,6 +99,10 @@ cleanup() {
     exit "$incoming_status"
   fi
   if [[ "$cleanup_failed" -ne 0 ]]; then
+    exit 1
+  fi
+  if ! write_evidence; then
+    printf '[smoke-devcontainer] ERROR: failed to write smoke evidence\n' >&2
     exit 1
   fi
   exit "$incoming_status"
