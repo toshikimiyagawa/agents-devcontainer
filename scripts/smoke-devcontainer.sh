@@ -11,6 +11,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 tmp_dir=""
 initial_status=""
+current_stage=""
 
 log() {
   printf '[smoke-devcontainer] %s\n' "$*"
@@ -20,6 +21,22 @@ fail() {
   printf '[smoke-devcontainer] ERROR: %s\n' "$*" >&2
   exit 1
 }
+
+stage() {
+  current_stage="$1"
+  log "stage: $current_stage"
+}
+
+on_error() {
+  error_status="$?"
+  trap - ERR
+  if [[ -n "$current_stage" ]]; then
+    printf '[smoke-devcontainer] ERROR: stage failed: %s (exit %s)\n' \
+      "$current_stage" "$error_status" >&2
+  fi
+  exit "$error_status"
+}
+trap on_error ERR
 
 if [[ -n "${REMOTE_CONTAINERS:-}" || -f /.dockerenv ]]; then
   fail "must be run from the host, not from inside a devcontainer"
@@ -39,6 +56,7 @@ initial_status="$($GIT_BIN -C "$REPO_ROOT" status --porcelain=v1 --untracked-fil
 
 cleanup() {
   incoming_status="$?"
+  trap - ERR
   trap - EXIT
 
   if [[ -n "$tmp_dir" ]]; then
@@ -59,10 +77,10 @@ trap cleanup EXIT
 
 log "WARNING: --remove-existing-container may replace the current dogfood container"
 
-log "stage: host-tests"
+stage host-tests
 "$BATS_BIN" "$REPO_ROOT/tests/"
 
-log "stage: base-image-build"
+stage base-image-build
 "$DOCKER_BIN" build -t agents-devcontainer:pr \
   -f "$REPO_ROOT/.devcontainer/Dockerfile.base" "$REPO_ROOT"
 
@@ -72,7 +90,7 @@ printf '%s\n' \
   'FROM ${BASE_IMAGE}' \
   > "$tmp_dir/Dockerfile"
 
-log "stage: derive-config"
+stage derive-config
 "$DEVCONTAINER_BIN" read-configuration \
   --workspace-folder "$REPO_ROOT" \
   --config "$REPO_ROOT/.devcontainer/devcontainer.json" \
@@ -83,19 +101,19 @@ log "stage: derive-config"
   | .build = {context: $root, dockerfile: $dockerfile, options: []}
 ' "$tmp_dir/resolved.json" > "$tmp_dir/devcontainer.json"
 
-log "stage: devcontainer-up"
+stage devcontainer-up
 "$DEVCONTAINER_BIN" up \
   --workspace-folder "$REPO_ROOT" \
   --config "$tmp_dir/devcontainer.json" \
   --remove-existing-container
 
-log "stage: container-tests"
+stage container-tests
 "$DEVCONTAINER_BIN" exec \
   --workspace-folder "$REPO_ROOT" \
   --config "$tmp_dir/devcontainer.json" \
   bash -lc 'cd /workspace && bats tests/'
 
-log "stage: tool-checks"
+stage tool-checks
 "$DEVCONTAINER_BIN" exec \
   --workspace-folder "$REPO_ROOT" \
   --config "$tmp_dir/devcontainer.json" \
@@ -108,7 +126,7 @@ log "stage: tool-checks"
     done
   '
 
-log "stage: hermes-check"
+stage hermes-check
 "$DEVCONTAINER_BIN" exec \
   --workspace-folder "$REPO_ROOT" \
   --config "$tmp_dir/devcontainer.json" \

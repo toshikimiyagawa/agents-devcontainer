@@ -1,5 +1,7 @@
 #!/usr/bin/env bats
 
+bats_require_minimum_version 1.5.0
+
 SOURCE_SMOKE="$BATS_TEST_DIRNAME/../scripts/smoke-devcontainer.sh"
 REAL_JQ="$(command -v jq)"
 
@@ -53,7 +55,8 @@ setup() {
   export FAKE_GIT_STATUS_INITIAL=""
   export FAKE_GIT_STATUS_FINAL=""
   unset REMOTE_CONTAINERS FAKE_DOCKER_INFO_FAIL FAKE_DOCKER_BUILD_FAIL
-  unset FAKE_DEVCONTAINER_FAIL FAKE_MISSING_TOOL
+  unset FAKE_DEVCONTAINER_FAIL FAKE_DEVCONTAINER_FAIL_EXEC_CONTAINS
+  unset FAKE_MISSING_TOOL FAKE_BATS_STATUS SEPARATE_STDERR
 }
 
 teardown() {
@@ -110,15 +113,15 @@ subcommand="$1"
 shift
 printf 'devcontainer %s %s\n' "$subcommand" "$*" >> "$CALLS"
 
+if [[ "${FAKE_DEVCONTAINER_FAIL:-}" = "$subcommand" ]]; then
+  exit 43
+fi
+
 if [[ "$subcommand" = "read-configuration" ]]; then
   cat <<'JSON'
 {"configuration":{"name":"smoke-test","build":{"context":"..","dockerfile":"../.devcontainer/Dockerfile","options":["--pull"]},"workspaceFolder":"/workspace","postCreateCommand":"agents-post-create","postStartCommand":"agents-post-start"}}
 JSON
   exit 0
-fi
-
-if [[ "${FAKE_DEVCONTAINER_FAIL:-}" = "$subcommand" ]]; then
-  exit 43
 fi
 
 if [[ "$subcommand" = "up" ]]; then
@@ -137,6 +140,10 @@ fi
 
 if [[ "$subcommand" = "exec" ]]; then
   command_string="${@: -1}"
+  if [[ -n "${FAKE_DEVCONTAINER_FAIL_EXEC_CONTAINS:-}" ]] \
+    && [[ "$command_string" = *"$FAKE_DEVCONTAINER_FAIL_EXEC_CONTAINS"* ]]; then
+    exit 43
+  fi
   if [[ "$command_string" = *"for tool in codex"* ]]; then
     if [[ -n "${FAKE_MISSING_TOOL:-}" ]]; then
       rm -f "$CONTAINER_BIN/$FAKE_MISSING_TOOL"
@@ -156,7 +163,9 @@ EOF
 }
 
 run_smoke() {
-  run env \
+  run_options=()
+  [[ -n "${SEPARATE_STDERR:-}" ]] && run_options+=(--separate-stderr)
+  run "${run_options[@]}" env \
     BATS_BIN="$BATS_BIN" \
     DOCKER_BIN="$DOCKER_BIN" \
     DEVCONTAINER_BIN="$DEVCONTAINER_BIN" \
@@ -171,8 +180,17 @@ run_smoke() {
     FAKE_DOCKER_INFO_FAIL="${FAKE_DOCKER_INFO_FAIL:-}" \
     FAKE_DOCKER_BUILD_FAIL="${FAKE_DOCKER_BUILD_FAIL:-}" \
     FAKE_DEVCONTAINER_FAIL="${FAKE_DEVCONTAINER_FAIL:-}" \
+    FAKE_DEVCONTAINER_FAIL_EXEC_CONTAINS="${FAKE_DEVCONTAINER_FAIL_EXEC_CONTAINS:-}" \
     FAKE_MISSING_TOOL="${FAKE_MISSING_TOOL:-}" \
     bash "$REPO/scripts/smoke-devcontainer.sh"
+}
+
+assert_stage_failure() {
+  expected_stage="$1"
+  export SEPARATE_STDERR=1
+  run_smoke
+  [ "$status" -ne 0 ]
+  [[ "$stderr" == *"ERROR: stage failed: $expected_stage"* ]]
 }
 
 @test "rejects execution inside a devcontainer" {
@@ -244,6 +262,41 @@ run_smoke() {
   export FAKE_DEVCONTAINER_FAIL=up
   run_smoke
   [ "$status" -eq 43 ]
+}
+
+@test "host test failure identifies its stage on stderr" {
+  export FAKE_BATS_STATUS=41
+  assert_stage_failure host-tests
+}
+
+@test "base image build failure identifies its stage on stderr" {
+  export FAKE_DOCKER_BUILD_FAIL=1
+  assert_stage_failure base-image-build
+}
+
+@test "configuration derivation failure identifies its stage on stderr" {
+  export FAKE_DEVCONTAINER_FAIL=read-configuration
+  assert_stage_failure derive-config
+}
+
+@test "devcontainer lifecycle failure identifies its stage on stderr" {
+  export FAKE_DEVCONTAINER_FAIL=up
+  assert_stage_failure devcontainer-up
+}
+
+@test "container test failure identifies its stage on stderr" {
+  export FAKE_DEVCONTAINER_FAIL_EXEC_CONTAINS='bats tests/'
+  assert_stage_failure container-tests
+}
+
+@test "tool check failure identifies its stage on stderr" {
+  export FAKE_DEVCONTAINER_FAIL_EXEC_CONTAINS='for tool in codex'
+  assert_stage_failure tool-checks
+}
+
+@test "Hermes check failure identifies its stage on stderr" {
+  export FAKE_DEVCONTAINER_FAIL_EXEC_CONTAINS='invalid Hermes persistence layout'
+  assert_stage_failure hermes-check
 }
 
 @test "runs Bats and required tool checks inside the container" {
