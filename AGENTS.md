@@ -60,3 +60,86 @@ bats tests/
 ```
 
 テストは `tests/` 以下に配置する。`scaffold.sh` の変更には `tests/scaffold.bats` を更新すること。
+
+## Environment matrix
+
+| Environment | 実装 | Bats | image build | dogfood smoke |
+|---|---|---|---|---|
+| host（通常 clone、/Users 配下） | ✓ | ✓ | ✓ | ✓ |
+| host（linked worktree） | ✓ | ✓ | ✓ | ✗ |
+| devcontainer 内 | ✓ | ✓ | ✗ | ✗ |
+| CI（ubuntu-latest） | — | ✓ | ✓ | ✓ |
+
+smoke は必ず `/Users` 配下の**通常 clone** から実行すること。linked worktree での smoke は
+設計上サポートしない（smoke は消費プロジェクト = 通常 clone の体験をシミュレートするため）。
+
+詳細: `docs/development/environment-matrix.md`
+
+## Phase gates
+
+### design preflight
+- [ ] `specs/<feature>/spec.md` が存在する
+- [ ] environment matrix で実装環境を確認した
+
+### implementation gate
+```bash
+bats tests/
+for f in .devcontainer/scripts/*; do bash -n "$f"; done
+bash -n scripts/*.sh
+```
+
+### verify gate
+```bash
+bats tests/                  # clean state で全通過
+git status --porcelain        # 空であること（未コミット変更なし）
+# + sdd-reviewer subagent を実行し PASS
+```
+
+### pre-PR gate
+```bash
+scripts/pre-pr-check.sh
+```
+
+### pre-merge gate（CI 自動）
+- `sdd-check`: spec gate + orchestration check
+- `test`: `bats tests/`
+- `smoke-devcontainer`: devcontainer 関連パス変更時に実行
+
+## Definition of Done
+
+| status | 意味 |
+|---|---|
+| `implementation_complete` | `tasks.md` 全タスク完了 + `bats tests/` green。smoke / SDD review / PR は未実施 |
+| `issue_complete` | verify gate 通過 + CI green + PR merged |
+
+「実装が終わった」と「issue が完了した」は別物。`.sdd/tasks.json` の `status` フィールドに設定する。
+
+## Reporting template
+
+各 phase 完了時に以下のテンプレートを使用する:
+
+```
+## Phase report: <phase名>
+- spec: specs/<feature>/spec.md
+- current status: <implementation_complete | issue_complete | blocked>
+- changed files: <リスト>
+- bats tests/: PASS / FAIL (<N> tests)
+- bash -n: PASS / FAIL
+- host smoke: PASS / FAIL / NOT_RUN（理由）
+- sdd-reviewer: PASS / FAIL / NOT_RUN
+- PR URL: <url or N/A>
+- CI: <green | pending | N/A>
+- 未実施項目: <リスト or なし>
+```
+
+## Blocker handling
+
+frozen `tasks.md` の範囲外の問題で作業が止まった場合:
+1. 即座に停止する
+2. `.sdd/tasks.json` の当該 feature を `blocked` に設定し `blocked_reason` に詳細を記入
+3. follow-up issue を作成（再現手順・影響 AC・元 issue の resume 条件を含める）
+4. resume は follow-up issue close または human の明示指示のみ
+
+scope creep を spec 変更で吸収してはいけない。必ず follow-up issue を作成する。
+
+詳細: `docs/development/blocker-handling.md`
