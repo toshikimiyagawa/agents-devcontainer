@@ -69,7 +69,10 @@ export MY_API_KEY=...
 - **`agents-post-create`** (`postCreateCommand`): dotfiles シンボリックリンク、Hermes superpowers bootstrap、SSH コピー、TPM インストール。コンテナ初回作成時に実行。
 - **`agents-post-start`** (`postStartCommand`): `/etc/gitconfig` に safe.directory、credential helper（`!/usr/bin/gh auth git-credential`）、git identity を設定。コンテナ起動のたびに実行（冪等）。
 
-git identity は `remoteEnv` 経由でホストの `GIT_AUTHOR_NAME` / `GIT_AUTHOR_EMAIL` を転送する。未設定の場合は `gh api user` でフォールバック。
+git identity は、コンテナへ明示的に渡された非空の `GIT_AUTHOR_NAME` /
+`GIT_AUTHOR_EMAIL` を使用し、不足分を認証済みの `gh api user` から補完する。
+dogfood 設定はホストの identity を自動転送しない。identity を取得できない場合は
+起動を継続して設定方法を警告し、空値を Git config へ書き込まない。
 
 ## 主要ツールスタック
 

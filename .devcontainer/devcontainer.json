@@ -36,15 +36,7 @@
     // ~/.claude.json (account/onboarding/trust state) lives in the container's
     // ephemeral $HOME and is lost on `devcontainer up --remove-existing-container`,
     // causing intermittent Claude re-login/re-onboarding.
-    "CLAUDE_CONFIG_DIR": "/home/ubuntu/.claude",
-    // Forward host git identity. Set in your host shell (e.g. ~/.zshrc):
-    //   export GIT_AUTHOR_NAME="Your Name"
-    //   export GIT_AUTHOR_EMAIL="you@example.com"
-    // Falls back to `gh api user` when env is unset but gh is authenticated.
-    "GIT_AUTHOR_NAME":     "${localEnv:GIT_AUTHOR_NAME}",
-    "GIT_AUTHOR_EMAIL":    "${localEnv:GIT_AUTHOR_EMAIL}",
-    "GIT_COMMITTER_NAME":  "${localEnv:GIT_AUTHOR_NAME}",
-    "GIT_COMMITTER_EMAIL": "${localEnv:GIT_AUTHOR_EMAIL}"
+    "CLAUDE_CONFIG_DIR": "/home/ubuntu/.claude"
   },
 
   "containerUser": "ubuntu",

@@ -41,16 +41,26 @@ sudo git config --system --remove-section credential.https://gist.github.com 2>/
 sudo git config --system credential.https://gist.github.com.helper '!/usr/bin/gh auth git-credential'
 
 # --- git identity ---
-# Prefer host-forwarded env vars (set via remoteEnv in devcontainer.json).
-# Fall back to gh API on first run when env is empty but gh is already authenticated.
+# Honor explicitly supplied non-empty env vars, then fill missing values from gh.
 name="${GIT_AUTHOR_NAME:-}"
 email="${GIT_AUTHOR_EMAIL:-}"
 if [[ -z "$name" || -z "$email" ]] && gh auth status >/dev/null 2>&1; then
   [[ -z "$name"  ]] && name="$(gh api user --jq .name  2>/dev/null || true)"
   [[ -z "$email" ]] && email="$(gh api user --jq .email 2>/dev/null || true)"
 fi
+[[ "$name" == null ]] && name=""
+[[ "$email" == null ]] && email=""
 [[ -n "$name"  ]] && sudo git config --system user.name  "$name"
 [[ -n "$email" ]] && sudo git config --system user.email "$email"
+
+missing_identity=()
+effective_name="$(git config --get user.name 2>/dev/null || true)"
+effective_email="$(git config --get user.email 2>/dev/null || true)"
+[[ -n "$effective_name" ]] || missing_identity+=(user.name)
+[[ -n "$effective_email" ]] || missing_identity+=(user.email)
+if (( ${#missing_identity[@]} > 0 )); then
+  log "WARNING: Git identity is incomplete; missing ${missing_identity[*]}. Configure it with 'sudo git config --system <key> <value>' or run 'gh auth login'."
+fi
 
 # --- sensible git defaults ---
 sudo git config --system init.defaultBranch main
