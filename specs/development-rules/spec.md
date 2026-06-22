@@ -1,7 +1,7 @@
 # Spec: development-rules
 
 - Tier: 2
-- Status: draft (re-freeze pending human approval — supersedes the degraded frozen spec flagged in PR #54 review)
+- Status: frozen (re-frozen 2026-06-22 after PR #54 review; supersedes the degraded spec)
 - Feature slug: development-rules
 
 ## 背景 / 意図
