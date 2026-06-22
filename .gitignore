@@ -6,3 +6,6 @@ dotfiles/.fuse_hidden*
 # Editor swap files
 *.swp
 *.swo
+
+# smoke 証跡（ローカル実行、コミット不要）
+.sdd/smoke-evidence.txt
