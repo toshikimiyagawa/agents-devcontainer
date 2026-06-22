@@ -28,7 +28,7 @@ info "bats tests/ ✓"
 bash_n_failed=0
 for f in "$REPO_ROOT/.devcontainer/scripts/"* "$REPO_ROOT/scripts/"*.sh; do
   [ -f "$f" ] || continue
-  if ! bash -n "$f" 2>/dev/null; then
+  if ! bash -n "$f"; then
     printf '[pre-pr-check] ERROR: syntax error in %s\n' "$f" >&2
     bash_n_failed=1
   fi
@@ -38,8 +38,10 @@ info "bash -n ✓"
 
 # 4. devcontainer 関連パス変更 → smoke 証跡が必要
 # smoke-devcontainer.yml の paths: と同期を保つこと
-changed="$("$GIT_BIN" -C "$REPO_ROOT" diff --name-only "origin/main...HEAD" 2>/dev/null || \
-           "$GIT_BIN" -C "$REPO_ROOT" diff --name-only "HEAD" 2>/dev/null || true)"
+if ! changed="$("$GIT_BIN" -C "$REPO_ROOT" diff --name-only "origin/main...HEAD" 2>/dev/null)"; then
+  info "WARNING: could not reach origin/main, falling back to HEAD diff (may be incomplete)"
+  changed="$("$GIT_BIN" -C "$REPO_ROOT" diff --name-only "HEAD" 2>/dev/null)" || true
+fi
 
 needs_smoke=0
 while IFS= read -r file; do
