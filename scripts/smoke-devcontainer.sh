@@ -58,19 +58,32 @@ cleanup() {
   incoming_status="$?"
   trap - ERR
   trap - EXIT
+  set +e
+  cleanup_failed=0
 
   if [[ -n "$tmp_dir" ]]; then
-    rm -rf "$tmp_dir"
-  fi
-
-  final_status="$($GIT_BIN -C "$REPO_ROOT" status --porcelain=v1 --untracked-files=all)"
-  if [[ "$final_status" != "$initial_status" ]]; then
-    printf '[smoke-devcontainer] ERROR: smoke changed the working tree\n' >&2
-    if [[ "$incoming_status" -eq 0 ]]; then
-      incoming_status=1
+    if ! rm -rf "$tmp_dir"; then
+      printf '[smoke-devcontainer] ERROR: failed to remove temporary files: %s\n' \
+        "$tmp_dir" >&2
+      cleanup_failed=1
     fi
   fi
 
+  final_status=""
+  if ! final_status="$($GIT_BIN -C "$REPO_ROOT" status --porcelain=v1 --untracked-files=all)"; then
+    printf '[smoke-devcontainer] ERROR: failed to inspect final working tree\n' >&2
+    cleanup_failed=1
+  elif [[ "$final_status" != "$initial_status" ]]; then
+    printf '[smoke-devcontainer] ERROR: smoke changed the working tree\n' >&2
+    cleanup_failed=1
+  fi
+
+  if [[ "$incoming_status" -ne 0 ]]; then
+    exit "$incoming_status"
+  fi
+  if [[ "$cleanup_failed" -ne 0 ]]; then
+    exit 1
+  fi
   exit "$incoming_status"
 }
 trap cleanup EXIT
@@ -84,13 +97,13 @@ stage base-image-build
 "$DOCKER_BIN" build -t agents-devcontainer:pr \
   -f "$REPO_ROOT/.devcontainer/Dockerfile.base" "$REPO_ROOT"
 
+stage derive-config
 tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/agents-devcontainer-smoke.XXXXXX")"
 printf '%s\n' \
   'ARG BASE_IMAGE=agents-devcontainer:pr' \
   'FROM ${BASE_IMAGE}' \
   > "$tmp_dir/Dockerfile"
 
-stage derive-config
 "$DEVCONTAINER_BIN" read-configuration \
   --workspace-folder "$REPO_ROOT" \
   --config "$REPO_ROOT/.devcontainer/devcontainer.json" \

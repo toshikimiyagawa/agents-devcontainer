@@ -56,10 +56,14 @@ setup() {
   export FAKE_GIT_STATUS_FINAL=""
   unset REMOTE_CONTAINERS FAKE_DOCKER_INFO_FAIL FAKE_DOCKER_BUILD_FAIL
   unset FAKE_DEVCONTAINER_FAIL FAKE_DEVCONTAINER_FAIL_EXEC_CONTAINS
-  unset FAKE_MISSING_TOOL FAKE_BATS_STATUS SEPARATE_STDERR
+  unset FAKE_MISSING_TOOL FAKE_BATS_STATUS FAKE_GIT_STATUS_FAIL_AT
+  unset FAKE_RM_FAIL SMOKE_PATH SEPARATE_STDERR
 }
 
 teardown() {
+  if [[ -f "$TEST_TMP/temp-config-path" ]]; then
+    /bin/rm -rf "$(dirname "$(cat "$TEST_TMP/temp-config-path")")"
+  fi
   rm -rf "$TEST_TMP"
 }
 
@@ -99,6 +103,9 @@ if [[ "$*" == *"status --porcelain=v1 --untracked-files=all"* ]]; then
   if [[ "$count" -eq 1 ]]; then
     printf '%s' "${FAKE_GIT_STATUS_INITIAL:-}"
   else
+    if [[ "$count" = "${FAKE_GIT_STATUS_FAIL_AT:-}" ]]; then
+      exit 44
+    fi
     printf '%s' "${FAKE_GIT_STATUS_FINAL:-${FAKE_GIT_STATUS_INITIAL:-}}"
   fi
 fi
@@ -166,6 +173,7 @@ run_smoke() {
   run_options=()
   [[ -n "${SEPARATE_STDERR:-}" ]] && run_options+=(--separate-stderr)
   run "${run_options[@]}" env \
+    PATH="${SMOKE_PATH:-$PATH}" \
     BATS_BIN="$BATS_BIN" \
     DOCKER_BIN="$DOCKER_BIN" \
     DEVCONTAINER_BIN="$DEVCONTAINER_BIN" \
@@ -177,11 +185,13 @@ run_smoke() {
     CONTAINER_DOTFILES="$CONTAINER_DOTFILES" \
     FAKE_GIT_STATUS_INITIAL="${FAKE_GIT_STATUS_INITIAL:-}" \
     FAKE_GIT_STATUS_FINAL="${FAKE_GIT_STATUS_FINAL:-}" \
+    FAKE_GIT_STATUS_FAIL_AT="${FAKE_GIT_STATUS_FAIL_AT:-}" \
     FAKE_DOCKER_INFO_FAIL="${FAKE_DOCKER_INFO_FAIL:-}" \
     FAKE_DOCKER_BUILD_FAIL="${FAKE_DOCKER_BUILD_FAIL:-}" \
     FAKE_DEVCONTAINER_FAIL="${FAKE_DEVCONTAINER_FAIL:-}" \
     FAKE_DEVCONTAINER_FAIL_EXEC_CONTAINS="${FAKE_DEVCONTAINER_FAIL_EXEC_CONTAINS:-}" \
     FAKE_MISSING_TOOL="${FAKE_MISSING_TOOL:-}" \
+    FAKE_RM_FAIL="${FAKE_RM_FAIL:-}" \
     bash "$REPO/scripts/smoke-devcontainer.sh"
 }
 
@@ -356,6 +366,72 @@ assert_stage_failure() {
   export FAKE_GIT_STATUS_FINAL=' M dotfiles/.zshrc'
   run_smoke
   [ "$status" -eq 42 ]
+}
+
+@test "cleanup removal failure preserves the original stage status" {
+  cat > "$BIN/rm" <<'EOF'
+#!/usr/bin/env bash
+[[ -n "${FAKE_RM_FAIL:-}" ]] && exit 45
+exec /bin/rm "$@"
+EOF
+  chmod +x "$BIN/rm"
+  export SMOKE_PATH="$BIN:$PATH"
+  export FAKE_RM_FAIL=1
+  export FAKE_DEVCONTAINER_FAIL=up
+  export SEPARATE_STDERR=1
+
+  run_smoke
+  [ "$status" -eq 43 ]
+  [[ "$stderr" == *"failed to remove temporary files"* ]]
+}
+
+@test "cleanup removal failure turns a successful smoke into failure" {
+  cat > "$BIN/rm" <<'EOF'
+#!/usr/bin/env bash
+[[ -n "${FAKE_RM_FAIL:-}" ]] && exit 45
+exec /bin/rm "$@"
+EOF
+  chmod +x "$BIN/rm"
+  export SMOKE_PATH="$BIN:$PATH"
+  export FAKE_RM_FAIL=1
+  export SEPARATE_STDERR=1
+
+  run_smoke
+  [ "$status" -eq 1 ]
+  [[ "$stderr" == *"failed to remove temporary files"* ]]
+}
+
+@test "final status failure preserves the original stage status" {
+  export FAKE_DOCKER_BUILD_FAIL=1
+  export FAKE_GIT_STATUS_FAIL_AT=2
+  export SEPARATE_STDERR=1
+
+  run_smoke
+  [ "$status" -eq 42 ]
+  [[ "$stderr" == *"failed to inspect final working tree"* ]]
+}
+
+@test "final status failure turns a successful smoke into failure" {
+  export FAKE_GIT_STATUS_FAIL_AT=2
+  export SEPARATE_STDERR=1
+
+  run_smoke
+  [ "$status" -eq 1 ]
+  [[ "$stderr" == *"failed to inspect final working tree"* ]]
+}
+
+@test "temporary setup failure is attributed to derive-config" {
+  cat > "$BIN/mktemp" <<'EOF'
+#!/usr/bin/env bash
+exit 46
+EOF
+  chmod +x "$BIN/mktemp"
+  export SMOKE_PATH="$BIN:$PATH"
+  export SEPARATE_STDERR=1
+
+  run_smoke
+  [ "$status" -eq 46 ]
+  [[ "$stderr" == *"ERROR: stage failed: derive-config"* ]]
 }
 
 @test "can be launched outside the repository root" {
