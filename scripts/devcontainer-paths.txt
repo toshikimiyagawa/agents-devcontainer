@@ -1,0 +1,14 @@
+# devcontainer 関連 path list の単一 source of truth。
+# scripts/pre-pr-check.sh と .github/workflows/smoke-devcontainer.yml が参照する。
+# 1 行 1 glob（GitHub Actions paths: 互換）。# 始まりはコメント、空行は無視。
+# 変更時は tests/pre-pr-check.bats の drift test が workflow/README との一致を検証する。
+.devcontainer/Dockerfile.base
+.devcontainer/Dockerfile
+.devcontainer/devcontainer.json
+.devcontainer/scripts/**
+dotfiles/**
+scaffold.sh
+scaffold/**
+scripts/smoke-devcontainer.sh
+tests/smoke-devcontainer.bats
+.github/workflows/smoke-devcontainer.yml
