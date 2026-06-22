@@ -33,10 +33,10 @@
   },
   {
     "id": "devcontainer-rebuild-smoke",
-    "phase": "implement",
-    "status": "blocked",
+    "phase": "verify",
+    "status": "in_progress",
     "assigned_agent": "codex",
     "handoff": "specs/devcontainer-rebuild-smoke/handoff.md",
-    "blocked_reason": "Host smoke reaches in-container Bats, but dogfood devcontainer forwards empty GIT_AUTHOR/GIT_COMMITTER variables when host identity is unset. Git then rejects scaffold fixture commits with 'empty ident name', and fixing dogfood identity forwarding is outside the frozen tasks."
+    "blocked_reason": null
   }
 ]
