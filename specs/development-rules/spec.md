@@ -132,7 +132,8 @@ issue #49 の作業中に判明した問題を一般化し、agent・人間問�
 test を提供する。
 
 - Issue→spec AC トレースを機械検査し未対応で freeze を禁止する CI → #55
-- `tasks.json` を canonical schema で検証する汎用 CI → #55
+- `tasks.json` の**全 feature・全フィールド**を JSON Schema で検証する汎用 CI → #55
+  （本 spec AC15 は **current feature の entry** を gate 内で検証する。汎用の全件 schema CI は別）
 - `state.json`/`tasks.json`/`tasks.md` 整合性の汎用 CI → #55
 - reviewer 手順への「元 Issue 差分レビュー」追加（標準ルール化） → #55
 - gate 実装向け汎用 negative-test checklist → #55

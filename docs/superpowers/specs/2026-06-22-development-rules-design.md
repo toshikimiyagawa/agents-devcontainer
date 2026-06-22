@@ -1,5 +1,9 @@
 # Design: development-rules — 開発ルールと PR 前検証ゲートの再設計
 
+> **SUPERSEDED (2026-06-23):** この初版設計は PR #54 レビューで不十分と判定された
+> （schema 外 status・存在確認のみの証跡・Issue #50 要件の脱落）。正本は
+> `specs/development-rules/spec.md` の re-frozen 版。本ファイルは設計履歴。
+
 Issue: #50
 Date: 2026-06-22
 

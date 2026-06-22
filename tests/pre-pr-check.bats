@@ -275,12 +275,61 @@ EOF
   [ "$status" -eq 1 ]
 }
 
-@test "exits 0 when tasks.json has no blocked tasks" {
+@test "exits 0 when current feature is present and schema-valid (no blocked)" {
   export CHANGED="README.md"
-  printf '[{"id":"foo","phase":"implement","status":"completed"}]\n' \
+  printf '{"feature":"myfeat","tier":2,"phase":"verify"}\n' > "$REPO/.sdd/state.json"
+  printf '[{"id":"myfeat","phase":"verify","status":"in_progress"}]\n' \
     > "$REPO/.sdd/tasks.json"
   run_check
   [ "$status" -eq 0 ]
+}
+
+@test "exits 1 when current feature is missing from tasks.json" {
+  export CHANGED="README.md"
+  printf '{"feature":"myfeat","tier":2,"phase":"verify"}\n' > "$REPO/.sdd/state.json"
+  printf '[{"id":"foo","phase":"implement","status":"completed"}]\n' \
+    > "$REPO/.sdd/tasks.json"
+  run_check
+  [ "$status" -eq 1 ]
+  [[ "$output" =~ "missing" ]]
+}
+
+@test "exits 1 when current feature uses a non-canonical status (schema violation)" {
+  export CHANGED="README.md"
+  printf '{"feature":"myfeat","tier":2,"phase":"verify"}\n' > "$REPO/.sdd/state.json"
+  printf '[{"id":"myfeat","phase":"implement","status":"implementation_complete"}]\n' \
+    > "$REPO/.sdd/tasks.json"
+  run_check
+  [ "$status" -eq 1 ]
+  [[ "$output" =~ "non-canonical" ]]
+}
+
+@test "exits 1 when current feature entry is incomplete (missing phase)" {
+  export CHANGED="README.md"
+  printf '{"feature":"myfeat","tier":2,"phase":"verify"}\n' > "$REPO/.sdd/state.json"
+  printf '[{"id":"myfeat","status":"completed"}]\n' \
+    > "$REPO/.sdd/tasks.json"
+  run_check
+  [ "$status" -eq 1 ]
+}
+
+@test "exits 1 when current feature is blocked" {
+  export CHANGED="README.md"
+  printf '{"feature":"myfeat","tier":2,"phase":"verify"}\n' > "$REPO/.sdd/state.json"
+  printf '[{"id":"myfeat","phase":"implement","status":"blocked","blocked_reason":"x"}]\n' \
+    > "$REPO/.sdd/tasks.json"
+  run_check
+  [ "$status" -eq 1 ]
+  [[ "$output" =~ "blocked" ]]
+}
+
+@test "exits 1 when state.json is malformed JSON (fail-closed)" {
+  export CHANGED="README.md"
+  printf '{ not json\n' > "$REPO/.sdd/state.json"
+  printf '[{"id":"myfeat","phase":"verify","status":"in_progress"}]\n' \
+    > "$REPO/.sdd/tasks.json"
+  run_check
+  [ "$status" -eq 1 ]
 }
 
 # --- path-list drift detection (single source of truth) ---

@@ -1,5 +1,10 @@
 # development-rules Implementation Plan
 
+> **SUPERSEDED (2026-06-23):** PR #54 のレビューで、この初版計画が定義した
+> `implementation_complete` / `issue_complete` status・存在確認のみの smoke 証跡は撤回された。
+> 正本は `specs/development-rules/` の re-frozen 版（canonical phase+status・証跡内容検証・
+> fail-closed gate）。本ファイルは設計履歴として残す。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 開発ルール・phase gates・DoD を AGENTS.md に集約し、`scripts/pre-pr-check.sh` と PR template で PR 前検証を自動化する。
