@@ -31,7 +31,7 @@ check_workflow() {
   grep -F 'select(.phase=="implement" and (.status=="in_progress" or .status=="pending"))' "$workflow" >/dev/null
   grep -F 'run: bats tests/' "$workflow" >/dev/null
   grep -F 'state_tier=$(jq -er' "$workflow" >/dev/null
-  grep -F 'has_tier2_label=$(jq -er' "$workflow" >/dev/null
+  grep -F 'has_tier2_label=$(jq -r' "$workflow" >/dev/null
   grep -F 'index("sdd:tier-2") != null' "$workflow" >/dev/null
   grep -F 'if [ "$state_tier" != 2 ] && [ "$has_tier2_label" = true ]; then' "$workflow" >/dev/null
   grep -F 'PR Tier label sdd:tier-2 does not match lower-tier state.' "$workflow" >/dev/null
@@ -58,6 +58,25 @@ check_workflow() {
   [ "$reverse" -lt "$guard" ]
   [ "$guard" -lt "$label_count" ]
   [ "$label_count" -lt "$validator" ]
+}
+
+run_tier_gate() {
+  local workflow=$1 state_tier=$2 labels=$3 root=$TMP_DIR/gate-$2
+  rm -rf "$root"
+  mkdir -p "$root/.sdd" "$root/scripts"
+  printf '{"feature":"fixture","tier":%s,"phase":"verify"}\n' "$state_tier" > "$root/.sdd/state.json"
+  printf '%s\n' '#!/usr/bin/env bash' 'printf called > validator-called' > "$root/scripts/check-sdd-contract.sh"
+  chmod +x "$root/scripts/check-sdd-contract.sh"
+  awk -v labels="$labels" '
+    /- name: Tier 2 traceability gate/ { found=1; next }
+    found && /run: \|/ { body=1; next }
+    body && /^      - name:/ { exit }
+    body {
+      sub(/^          /, "")
+      if (index($0, "${{ toJSON(github.event.pull_request.labels.*.name) }}")) print labels
+      else print
+    }' "$workflow" > "$root/gate.sh"
+  run bash -e -c 'cd "$1" && bash -e gate.sh' _ "$root"
 }
 
 @test "workflow preserves existing gates and adds the Tier 2 validator" {
@@ -88,6 +107,16 @@ check_workflow() {
   sed 's/if \[ "$state_tier" != 2 \] && \[ "$has_tier2_label" = true \]; then/if false; then/' "$workflow" > "$TMP_DIR/reverse-mismatch.yml"
   run check_workflow "$TMP_DIR/reverse-mismatch.yml"
   [ "$status" -ne 0 ]
+
+  run_tier_gate "$workflow" 0 '[]'
+  [ "$status" -eq 0 ]
+  run_tier_gate "$workflow" 0 '["sdd:tier-0"]'
+  [ "$status" -eq 0 ]
+  run_tier_gate "$workflow" 1 '["sdd:tier-1"]'
+  [ "$status" -eq 0 ]
+  run_tier_gate "$workflow" 1 '["sdd:tier-2"]'
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"PR Tier label sdd:tier-2 does not match lower-tier state."* ]]
 }
 
 @test "reviewer compares source meaning and completion evidence" {

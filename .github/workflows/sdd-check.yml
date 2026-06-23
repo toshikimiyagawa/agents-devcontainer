@@ -43,7 +43,7 @@ jobs:
       - name: Tier 2 traceability gate
         run: |
           state_tier=$(jq -er '.tier | select(type == "number" and floor == .)' .sdd/state.json)
-          has_tier2_label=$(jq -er 'index("sdd:tier-2") != null' <<'JSON'
+          has_tier2_label=$(jq -r 'index("sdd:tier-2") != null' <<'JSON'
           ${{ toJSON(github.event.pull_request.labels.*.name) }}
           JSON
           )
