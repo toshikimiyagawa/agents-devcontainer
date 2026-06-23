@@ -38,5 +38,13 @@
     "assigned_agent": "codex",
     "handoff": "specs/devcontainer-rebuild-smoke/handoff.md",
     "blocked_reason": null
+  },
+  {
+    "id": "issue-55-sdd-minimal",
+    "phase": "tasks",
+    "status": "pending",
+    "assigned_agent": "codex",
+    "handoff": "specs/issue-55-sdd-minimal/handoff.md",
+    "blocked_reason": null
   }
 ]

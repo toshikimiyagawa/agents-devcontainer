@@ -1,0 +1,114 @@
+{
+  "source": {
+    "url": "https://github.com/toshikimiyagawa/agents-devcontainer/issues/55"
+  },
+  "criteria": [
+    {
+      "issue_ac": "ISSUE-AC-001",
+      "text": "Issue ACからspec AC、task、testへの機械検査可能な対応形式を定義する",
+      "disposition": "implemented",
+      "spec_acs": ["AC-001", "AC-002", "AC-003"],
+      "tasks": ["TASK-001", "TASK-002"],
+      "tests": [
+        {"file": "tests/check-sdd-contract.bats", "name": "accepts a valid freeze contract"},
+        {"file": "tests/check-sdd-contract.bats", "name": "rejects untracked and duplicate issue criteria"},
+        {"file": "tests/check-sdd-contract.bats", "name": "rejects malformed or multi-value traceability JSON"}
+      ]
+    },
+    {
+      "issue_ac": "ISSUE-AC-002",
+      "text": "未対応Issue ACがあるspecをfreezeまたはverify PASSにしない",
+      "disposition": "implemented",
+      "spec_acs": ["AC-002", "AC-005"],
+      "tasks": ["TASK-002"],
+      "tests": [
+        {"file": "tests/check-sdd-contract.bats", "name": "rejects untracked and duplicate issue criteria"},
+        {"file": "tests/check-sdd-contract.bats", "name": "rejects missing and orphaned spec or task references"}
+      ]
+    },
+    {
+      "issue_ac": "ISSUE-AC-003",
+      "text": "scope外化した要件に理由とfollow-up Issueがなければ失敗する",
+      "disposition": "implemented",
+      "spec_acs": ["AC-004"],
+      "tasks": ["TASK-002"],
+      "tests": [
+        {"file": "tests/check-sdd-contract.bats", "name": "rejects invalid follow-up mapping"}
+      ]
+    },
+    {
+      "issue_ac": "ISSUE-AC-004",
+      "text": "state.json、tasks.json、tasks.mdの対象feature、phase、完了状態を検査する",
+      "disposition": "implemented",
+      "spec_acs": ["AC-006", "AC-007"],
+      "tasks": ["TASK-002"],
+      "tests": [
+        {"file": "tests/check-sdd-contract.bats", "name": "rejects state feature tier or phase mismatch"},
+        {"file": "tests/check-sdd-contract.bats", "name": "rejects blocked tasks and unchecked task boxes"}
+      ]
+    },
+    {
+      "issue_ac": "ISSUE-AC-005",
+      "text": "tasks.jsonをcanonical fieldとvalueで検証する",
+      "disposition": "implemented",
+      "spec_acs": ["AC-007"],
+      "tasks": ["TASK-002"],
+      "tests": [
+        {"file": "tests/check-sdd-contract.bats", "name": "rejects missing duplicate or noncanonical feature task"}
+      ]
+    },
+    {
+      "issue_ac": "ISSUE-AC-006",
+      "text": "reviewer手順に元Issueとfrozen specの差分reviewを追加する",
+      "disposition": "implemented",
+      "spec_acs": ["AC-011"],
+      "tasks": ["TASK-003"],
+      "tests": [
+        {"file": "tests/sdd-contract-policy.bats", "name": "reviewer compares source meaning and completion evidence"}
+      ]
+    },
+    {
+      "issue_ac": "ISSUE-AC-007",
+      "text": "gate実装向けの必須negative-test checklistを追加する",
+      "disposition": "implemented",
+      "spec_acs": ["AC-008", "AC-009", "AC-012", "AC-013", "AC-015"],
+      "tasks": ["TASK-001", "TASK-002", "TASK-003", "TASK-004"],
+      "tests": [
+        {"file": "tests/sdd-contract-policy.bats", "name": "docs define the practical trust boundary"},
+        {"file": "tests/sdd-contract-policy.bats", "name": "enforces validator and test size budgets"}
+      ]
+    },
+    {
+      "issue_ac": "ISSUE-AC-008",
+      "text": "PR #54で発生した要件脱落と状態不整合をfixtureで再現する",
+      "disposition": "implemented",
+      "spec_acs": ["AC-013"],
+      "tasks": ["TASK-001", "TASK-002"],
+      "tests": [
+        {"file": "tests/check-sdd-contract.bats", "name": "rejects the PR 54 inconsistent state fixture"}
+      ]
+    },
+    {
+      "issue_ac": "ISSUE-AC-009",
+      "text": "testをproduction変更前にRED、変更後にGREENで確認する",
+      "disposition": "implemented",
+      "spec_acs": ["AC-014"],
+      "tasks": ["TASK-001", "TASK-002", "TASK-003", "TASK-004"],
+      "tests": [
+        {"file": "tests/sdd-contract-policy.bats", "name": "implementation plan requires RED before GREEN"}
+      ]
+    },
+    {
+      "issue_ac": "ISSUE-AC-010",
+      "text": "human-facing docsとagent instructionsにfreezeとverify条件を記載する",
+      "disposition": "implemented",
+      "spec_acs": ["AC-010", "AC-012", "AC-016"],
+      "tasks": ["TASK-003", "TASK-004"],
+      "tests": [
+        {"file": "tests/sdd-contract-policy.bats", "name": "workflow preserves existing gates and adds the Tier 2 validator"},
+        {"file": "tests/sdd-contract-policy.bats", "name": "docs define the practical trust boundary"},
+        {"file": "tests/sdd-contract-policy.bats", "name": "vendored SDD guide remains unchanged"}
+      ]
+    }
+  ]
+}
