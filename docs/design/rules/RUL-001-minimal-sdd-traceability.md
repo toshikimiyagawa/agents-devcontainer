@@ -1,7 +1,7 @@
 ---
 id: RUL-001
 title: 最小SDDトレーサビリティゲート
-status: planned
+status: confirmed
 feature: issue-55-sdd-minimal
 updated: 2026-06-24
 ---
