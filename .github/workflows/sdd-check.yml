@@ -40,6 +40,26 @@ jobs:
           sudo curl -fsSL https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 \
             -o /usr/local/bin/yq && sudo chmod +x /usr/local/bin/yq
 
+      - name: Tier 2 traceability gate
+        run: |
+          tier_labels=$(jq -r '.[] | select(test("^sdd:tier-[012]$"))' <<'JSON'
+          ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          JSON
+          )
+          tier_count=$(printf '%s\n' "$tier_labels" | awk 'NF { count++ } END { print count+0 }')
+          if [ "$tier_count" -gt 1 ]; then
+            echo "::error::Tier labels must be unique."
+            exit 1
+          fi
+          tier=${tier_labels##*-}
+          if [ "$tier" = 2 ]; then
+            scripts/check-sdd-contract.sh \
+              --feature "$(jq -r .feature .sdd/state.json)" \
+              --mode verify \
+              --base "${{ github.event.pull_request.base.sha }}" \
+              --expected-tier 2
+          fi
+
       - name: Tests
         run: bats tests/
 

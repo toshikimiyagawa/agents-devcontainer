@@ -18,10 +18,19 @@ Implement exactly the frozen `specs/<feature>/tasks.md`. No more, no less.
 Every acceptance criterion must map to a passing test.
 If the spec is wrong or insufficient: STOP and escalate. Do not redesign.
 
+For a Tier 2 freeze, run `scripts/check-sdd-contract.sh --feature <feature> --mode
+freeze`. Before verify, use the PR base and Tier 2 label with `--mode verify --base
+<commit> --expected-tier 2`; missing, malformed, inconsistent, or ambiguous contract
+data fails closed. Keep `ISSUE-AC-NNN`, `AC-NNN`, and `TASK-NNN` mappings unique.
+The validator and focused Bats file must remain within 250 lines and 400 lines.
+See `docs/development/sdd-traceability.md` for the trust boundary and checklist.
+
 ## Verify phase (superpowers required)
 Run the `sdd-reviewer` subagent/prompt against the diff to confirm the implementation
 matches the frozen spec. See `vendor/ai-sdd-guide/orchestration/rules/orchestration.md`
 for agent-specific instructions (Claude Code / Codex / Gemini CLI).
+Validator green does not replace independent comparison with the source Issue or
+review of whether mapped tests prove their acceptance criteria.
 
 ## Hard rules
 - Do not modify files under `specs/` to fit an implementation.
