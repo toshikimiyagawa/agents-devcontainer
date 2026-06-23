@@ -38,13 +38,13 @@
     },
     {
       "issue_ac": "ISSUE-AC-004",
-      "text": "state.json、tasks.json、tasks.mdの対象feature、phase、完了状態を検査する",
+      "text": "state.json、tasks.json、tasks.mdの対象feature、phase、完了状態を検査する。tasks.mdはfrozen計画、tasks.jsonはmutable状態として扱う",
       "disposition": "implemented",
       "spec_acs": ["AC-006", "AC-007"],
       "tasks": ["TASK-002"],
       "tests": [
         {"file": "tests/check-sdd-contract.bats", "name": "rejects state feature tier or phase mismatch"},
-        {"file": "tests/check-sdd-contract.bats", "name": "rejects blocked tasks and unchecked task boxes"}
+        {"file": "tests/check-sdd-contract.bats", "name": "rejects blocked tasks and incomplete feature status"}
       ]
     },
     {

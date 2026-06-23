@@ -71,7 +71,7 @@ rejects missing and orphaned spec or task references
 accepts a valid verify contract
 rejects state feature tier or phase mismatch
 rejects missing duplicate or noncanonical feature task
-rejects blocked tasks and unchecked task boxes
+rejects blocked tasks and incomplete feature status
 rejects missing or duplicate Bats test declarations
 rejects unavailable base and feature mismatch
 rejects expected tier mismatch
@@ -115,7 +115,7 @@ fail() { printf '[sdd-contract] ERROR: %s\n' "$*" >&2; exit 1; }
 
 - [ ] Compare sorted unique sets so every spec AC and task appears in traceability and every mapped ID exists.
 - [ ] Make `freeze` return after the fixed JSON and ID checks pass.
-- [ ] Add `verify` checks in this order: state shape/value; canonical tasks array; unique current task; global blocked count; unchecked checkbox count; referenced test containment/exact declaration; base resolution/diff; feature and Tier equality.
+- [ ] Add `verify` checks in this order: state shape/value; canonical tasks array; unique current task; global blocked count; referenced test containment/exact declaration; base resolution/diff; feature and Tier equality.
 - [ ] Resolve changed feature paths with `git diff --name-only -z "$base"...HEAD -- specs` and a NUL-safe loop. More than one changed feature or a changed feature different from `--feature` fails.
 - [ ] Reject referenced symlinks and physical parent paths outside `REPO_ROOT`. Count a declaration only when the trimmed line equals `@test "<name>" {`.
 - [ ] Run `bats tests/check-sdd-contract.bats`; expect every focused test GREEN.

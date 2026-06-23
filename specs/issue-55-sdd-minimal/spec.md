@@ -30,7 +30,8 @@ TDD実施事実は独立reviewerが判断する。
   `verify`を示すことを確認する。
 - [ ] AC-007: verify validationはtasks.jsonのcanonical field/value、対象entry
   1件、phase `verify`、status `completed`、repository全体のblocked task 0件、
-  tasks.mdの未完了checkbox 0件を確認する。
+  frozen tasks.mdのTASK IDとtraceability参照の整合を確認する。checkboxは実行
+  状態に使用しない。
 - [ ] AC-008: verify validationは参照test fileがrepository内の通常fileとして
   存在し、exact Bats test declarationがちょうど1件あることを確認する。
 - [ ] AC-009: PR validationはbase ref、changed spec feature、requested feature、
@@ -43,7 +44,7 @@ TDD実施事実は独立reviewerが判断する。
 - [ ] AC-012: AGENTS.mdとhuman-facing docsはfreeze/verify command、固定ID、
   fail-closed条件、独立reviewの責務、非目的を説明する。
 - [ ] AC-013: validator Batsはvalid freeze/verify、malformed JSON、mapping不足、
-  follow-up不足、参照欠落、state/tasks/checkbox不整合、base/Tier/feature不一致、
+  follow-up不足、参照欠落、state/tasks不整合、base/Tier/feature不一致、
   PR #54型fixtureを実behaviorで検証する。
 - [ ] AC-014: 各実装behaviorはproduction変更前にfocused BatsをREDで確認し、
   変更後にGREENを確認する。実装reportへcommand/resultを記録し、独立reviewerが
@@ -76,6 +77,9 @@ TDD実施事実は独立reviewerが判断する。
 AC-011とAC-014は人間判断を含む。testはreviewer instructionとreporting contractが
 存在することを固定し、実際の意味・実施事実は独立reviewerが確認する。ローカル
 artifactでreviewer独立性や過去実行を認証したとは主張しない。
+
+`tasks.md`はfreezeされた計画であり、実装進捗のmutable stateではない。TASK IDと
+計画内容はtasks.md、phase/status/blocked_reasonは`.sdd/tasks.json`を正本とする。
 
 ## Constraints
 

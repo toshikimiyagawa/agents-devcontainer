@@ -24,7 +24,7 @@ process evidence、reviewer attestationまで機械検証しようとした。�
 ## 目的
 
 1. Issue ACがspec/tasks/testsへ追跡されないままfreezeされることを防ぐ。
-2. state、tasks、checkboxが不整合なままverify PASSになることを防ぐ。
+2. state、tasks、TASK IDが不整合なままverify PASSになることを防ぐ。
 3. 既存のTier gate、orchestration gate、Batsを維持する。
 4. localとCIが同じ小さなvalidatorを使用する。
 5. 自動化できない判断を、自動化できるように装わない。
@@ -46,7 +46,7 @@ process evidence、reviewer attestationまで機械検証しようとした。�
 
 - `.sdd/state.json`のfeature、tier、phase。
 - `.sdd/tasks.json`の対象entry、canonical status、重複、blocked。
-- `tasks.md`の未完了checkbox。
+- frozen `tasks.md`内のTASK IDとtraceability参照の整合性。
 - Issue AC → spec AC → task → testの参照完全性。
 - 参照されたspec AC、task、test file、Bats test名の存在。
 - PR Tier label、state、変更対象featureの一致。
@@ -138,7 +138,8 @@ freeze条件に加えて次を確認する。
 - 対象entryがcanonical field/valueを使い、phase `verify`、status
   `completed`である。
 - repository全体にblocked taskがない。
-- `tasks.md`に`- [ ]`がない。
+- frozen `tasks.md`のTASK IDがtraceabilityと一致する。checkboxは計画手順で
+  あり、実行状態として解釈しない。
 - test fileがrepository内の通常fileとして存在する。
 - Bats test名がexact declarationとしてちょうど1件存在する。
 - base ref、変更spec feature、requested feature、state featureが一致する。
@@ -168,7 +169,7 @@ repository-local `sdd-reviewer`は次を実施する。
 1. GitHub Issueとtraceability criteriaを意味的に比較する。
 2. traceability criteriaとspec ACを比較する。
 3. 各testが対応ACを実際に証明するか読む。
-4. state、tasks、checkbox、reviewed HEADを確認する。
+4. state、tasks、TASK ID、reviewed HEADを確認する。
 5. scope外項目の理由とfollow-up Issueを確認する。
 6. command、test件数、commit SHAを報告する。
 
@@ -187,7 +188,7 @@ PASS/FAILを返す。追加の保証モデルは別Issueとして提案する。
 - 存在しないspec AC、task、test。
 - state feature/tier/phase不一致。
 - tasks entry欠落・重複・blocked・非canonical value。
-- 未完了checkbox。
+- traceabilityが存在しないTASK IDを参照する状態。
 - base ref取得失敗。
 - changed feature、requested feature、state feature不一致。
 - expected Tier不一致。
@@ -213,6 +214,12 @@ testは実behaviorを呼び出す。文書全体の単語grepや任意schema mut
 5. Implementationでは`specs/`を変更しない。
 6. Verifyでvalidator、全Bats、独立reviewerを実行する。
 7. CI greenとmergeableを確認する。
+
+### Human-approved state ownership correction
+
+`tasks.md`はfreeze後に変更できないため、そのcheckboxをmutableな実行状態として
+検証しない。計画内容とTASK IDの正本はfrozen `tasks.md`、進捗と完了状態の正本は
+`.sdd/tasks.json`とする。implementation agentはspec fileのcheckboxを更新しない。
 
 ## Migration and branch policy
 
