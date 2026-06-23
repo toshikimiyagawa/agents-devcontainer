@@ -89,15 +89,19 @@ trace_error=$("$JQ_BIN" -r '
 [ -z "$trace_error" ] || fail "$trace_error"
 
 extract_spec_ids() {
-  sed -n 's/^- \[[ x]\] \(AC-[0-9][0-9][0-9]\): .*/\1/p' "$spec" | sort -u
+  sed -n 's/^- \[[ x]\] \(AC-[0-9][0-9][0-9]\): .*/\1/p' "$spec"
 }
 extract_task_ids() {
-  sed -n 's/^### \(TASK-[0-9][0-9][0-9]\): .*/\1/p' "$tasks" | sort -u
+  sed -n 's/^### \(TASK-[0-9][0-9][0-9]\): .*/\1/p' "$tasks"
 }
 mapped_spec=$("$JQ_BIN" -r '[.criteria[] | select(.disposition == "implemented") | .spec_acs[]] | unique[]' "$trace") || fail "spec AC mapping"
 mapped_tasks=$("$JQ_BIN" -r '[.criteria[] | select(.disposition == "implemented") | .tasks[]] | unique[]' "$trace") || fail "task mapping"
-spec_ids=$(extract_spec_ids)
-task_ids=$(extract_task_ids)
+spec_ids_raw=$(extract_spec_ids)
+task_ids_raw=$(extract_task_ids)
+[ -z "$(printf '%s\n' "$spec_ids_raw" | sort | awk 'seen[$0]++ { print; exit }')" ] || fail "duplicate spec AC definition"
+[ -z "$(printf '%s\n' "$task_ids_raw" | sort | awk 'seen[$0]++ { print; exit }')" ] || fail "duplicate task definition"
+spec_ids=$(printf '%s\n' "$spec_ids_raw" | sort -u)
+task_ids=$(printf '%s\n' "$task_ids_raw" | sort -u)
 [ -n "$spec_ids" ] || fail "spec AC definitions missing"
 [ -n "$task_ids" ] || fail "task definitions missing"
 if [ "$(printf '%s\n' "$mapped_spec" | sort -u)" != "$spec_ids" ]; then

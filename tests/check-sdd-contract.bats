@@ -169,6 +169,18 @@ write_valid_follow_up() {
   assert_rejected "task reference"
 
   write_valid_json
+  printf '%s\n' '### TASK-001: Duplicate' >> "$REPO_ROOT/specs/$FEATURE/tasks.md"
+  check_freeze
+  assert_rejected "duplicate task"
+
+  sed -i.bak '$d' "$REPO_ROOT/specs/$FEATURE/tasks.md" && rm "$REPO_ROOT/specs/$FEATURE/tasks.md.bak"
+  write_valid_json
+  printf '%s\n' '- [x] AC-001: duplicate' >> "$REPO_ROOT/specs/$FEATURE/spec.md"
+  check_freeze
+  assert_rejected "duplicate spec AC"
+
+  sed -i.bak '$d' "$REPO_ROOT/specs/$FEATURE/spec.md" && rm "$REPO_ROOT/specs/$FEATURE/spec.md.bak"
+  write_valid_json
   printf '%s\n' '- [ ] AC-002: orphan' >> "$REPO_ROOT/specs/$FEATURE/spec.md"
   check_freeze
   assert_rejected "orphaned spec AC"
