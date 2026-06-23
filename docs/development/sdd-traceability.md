@@ -20,10 +20,14 @@ implement-handoff, and full-Bats gates and adds verify validation only for Tier 
 
 ## Practical trust boundary
 
+### Machine guarantees
+
 Machine-checked guarantees cover the fixed JSON shape, unique references, frozen
 spec/task IDs, state and task consistency, exact test declarations, changed feature,
 PR base, and Tier. The validator remains at most 250 lines and its focused Bats file
 at most 400 lines.
+
+### Reviewer responsibilities
 
 Independent review compares the source GitHub Issue meaning with traceability and
 the frozen spec, reads whether mapped tests actually prove each criterion, judges
@@ -32,6 +36,8 @@ counts, and reviewed SHA. Validator green is insufficient for those judgments. T
 reviewer identity is not machine-authenticated. Also, past TDD execution is not machine-authenticated;
 the reviewer evaluates available reports, commits, and test results without treating
 local assertions as proof.
+
+### Non-goals
 
 This design does not add a JSON Schema interpreter, process evidence, attestation,
 or a dedicated Bats wrapper. It does not modify the vendored SDD guide or PR #54

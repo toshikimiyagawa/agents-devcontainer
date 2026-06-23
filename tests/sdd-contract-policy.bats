@@ -2,63 +2,109 @@
 
 setup() {
   REPO_ROOT=$(cd "$BATS_TEST_DIRNAME/.." && pwd -P)
+  TMP_DIR=$(mktemp -d)
+}
+
+teardown() {
+  rm -rf "$TMP_DIR"
 }
 
 assert_contains() {
   grep -F -- "$2" "$REPO_ROOT/$1" >/dev/null
 }
 
+section() {
+  awk -v heading="$2" '$0 == heading { found=1; next }
+    found && /^##/ { exit } found { print } END { if (!found) exit 1 }' "$1"
+}
+
+assert_text() {
+  printf '%s\n' "$1" | tr '\n' ' ' | grep -F -- "$2" >/dev/null
+}
+
+check_workflow() {
+  local workflow=$1 tier2
+  set -e
+  grep -F 'src="$(echo "$changed" | grep -vE' "$workflow" >/dev/null
+  grep -F "if ! ls specs/*/spec.md" "$workflow" >/dev/null
+  grep -F "blocked=\$(jq '[.[] | select(.status==\"blocked\")] | length'" "$workflow" >/dev/null
+  grep -F 'select(.phase=="implement" and (.status=="in_progress" or .status=="pending"))' "$workflow" >/dev/null
+  grep -F 'run: bats tests/' "$workflow" >/dev/null
+  grep -F 'test("^sdd:tier-[012]$")' "$workflow" >/dev/null
+  grep -F 'tier_count=$(printf' "$workflow" >/dev/null
+  grep -F 'Tier labels must be unique' "$workflow" >/dev/null
+  tier2=$(awk '/if \[ "\$tier" = 2 \]; then/ { in_block=1 }
+    in_block { print } in_block && /^[[:space:]]*fi$/ { exit }' "$workflow")
+  assert_text "$tier2" 'scripts/check-sdd-contract.sh \'
+  assert_text "$tier2" '--feature "$(jq -r .feature .sdd/state.json)" \'
+  assert_text "$tier2" '--mode verify \'
+  assert_text "$tier2" '--base "${{ github.event.pull_request.base.sha }}" \'
+  assert_text "$tier2" '--expected-tier 2'
+}
+
 @test "workflow preserves existing gates and adds the Tier 2 validator" {
-  workflow=.github/workflows/sdd-check.yml
-  assert_contains "$workflow" "- name: Spec gate"
-  assert_contains "$workflow" "- name: Tests"
-  assert_contains "$workflow" "run: bats tests/"
-  assert_contains "$workflow" "No blocked tasks allowed on merge."
-  assert_contains "$workflow" "Every in_progress or pending implement task must have a handoff.md."
-  assert_contains "$workflow" 'test("^sdd:tier-[012]$")'
-  assert_contains "$workflow" 'Tier labels must be unique'
-  assert_contains "$workflow" 'if [ "$tier" = 2 ]; then'
-  assert_contains "$workflow" 'scripts/check-sdd-contract.sh \'
-  assert_contains "$workflow" '--feature "$(jq -r .feature .sdd/state.json)" \'
-  assert_contains "$workflow" '--mode verify \'
-  assert_contains "$workflow" '--base "${{ github.event.pull_request.base.sha }}" \'
-  assert_contains "$workflow" '--expected-tier 2'
+  workflow="$REPO_ROOT/.github/workflows/sdd-check.yml"
+  check_workflow "$workflow"
+
+  sed 's/if \[ "$tier" = 2 \]; then/if [ "$tier" = 1 ]; then/' "$workflow" > "$TMP_DIR/wrong-condition.yml"
+  run check_workflow "$TMP_DIR/wrong-condition.yml"
+  [ "$status" -ne 0 ]
+
+  sed 's@scripts/check-sdd-contract.sh \\@true # validator moved@' "$workflow" > "$TMP_DIR/moved.yml"
+  printf '%s\n' 'scripts/check-sdd-contract.sh --mode verify' >> "$TMP_DIR/moved.yml"
+  run check_workflow "$TMP_DIR/moved.yml"
+  [ "$status" -ne 0 ]
 }
 
 @test "reviewer compares source meaning and completion evidence" {
-  reviewer=.claude/agents/sdd-reviewer.md
-  assert_contains "$reviewer" "GitHub Issue"
-  assert_contains "$reviewer" "traceability.json"
-  assert_contains "$reviewer" "validator green is insufficient"
-  assert_contains "$reviewer" "reviewer identity is not machine-authenticated"
-  assert_contains "$reviewer" "past TDD execution is not machine-authenticated"
-  assert_contains "$reviewer" "commands and test counts"
-  assert_contains "$reviewer" "reviewed SHA"
-  assert_contains "$reviewer" "PASS/FAIL"
+  reviewer="$REPO_ROOT/.claude/agents/sdd-reviewer.md"
+  source_contract=$(section "$reviewer" "## Source comparison")
+  assert_text "$source_contract" "GitHub Issue"
+  assert_text "$source_contract" "traceability.json"
+  assert_text "$source_contract" "frozen spec"
+  assert_text "$source_contract" "validator green is insufficient"
+  evidence_contract=$(section "$reviewer" "## Completion evidence")
+  assert_text "$evidence_contract" "commands and test counts"
+  assert_text "$evidence_contract" "reviewed SHA"
+  assert_text "$evidence_contract" "PASS/FAIL"
+  assert_text "$evidence_contract" "reviewer identity is not machine-authenticated"
+  assert_text "$evidence_contract" "past TDD execution is not machine-authenticated"
 }
 
 @test "docs define the practical trust boundary" {
-  docs=docs/development/sdd-traceability.md
-  [ -f "$REPO_ROOT/$docs" ]
-  assert_contains "$docs" "Machine-checked"
-  assert_contains "$docs" "Independent review"
-  assert_contains "$docs" "reviewer identity is not machine-authenticated"
-  assert_contains "$docs" "past TDD execution is not machine-authenticated"
-  assert_contains "$docs" "malformed or multi-value JSON"
-  assert_contains "$docs" "untracked or duplicate Issue AC"
-  assert_contains "$docs" "incomplete implemented mapping"
-  assert_contains "$docs" "invalid follow-up reason or Issue URL"
-  assert_contains "$docs" "missing or orphaned spec AC or task"
-  assert_contains "$docs" "state feature, tier, or phase mismatch"
-  assert_contains "$docs" "missing, duplicate, blocked, incomplete, or noncanonical task state"
-  assert_contains "$docs" "missing or duplicate exact Bats declaration"
-  assert_contains "$docs" "unavailable base or feature mismatch"
-  assert_contains "$docs" "expected Tier mismatch"
-  assert_contains "$docs" "PR #54 inconsistent-state fixture"
+  docs="$REPO_ROOT/docs/development/sdd-traceability.md"
+  machine=$(section "$docs" "### Machine guarantees")
+  assert_text "$machine" "fixed JSON shape"
+  assert_text "$machine" "state and task consistency"
+  assert_text "$machine" "changed feature"
+  reviewer=$(section "$docs" "### Reviewer responsibilities")
+  assert_text "$reviewer" "source GitHub Issue meaning"
+  assert_text "$reviewer" "mapped tests actually prove"
+  assert_text "$reviewer" "reviewer identity is not machine-authenticated"
+  assert_text "$reviewer" "past TDD execution is not machine-authenticated"
+  non_goals=$(section "$docs" "### Non-goals")
+  assert_text "$non_goals" "JSON Schema interpreter"
+  assert_text "$non_goals" "process evidence"
+  assert_text "$non_goals" "attestation"
+  checklist=$(section "$docs" "## Finite negative checklist")
+  for contract in "malformed or multi-value JSON" "untracked or duplicate Issue AC" \
+    "incomplete implemented mapping" "invalid follow-up reason or Issue URL" \
+    "missing or orphaned spec AC or task" "state feature, tier, or phase mismatch" \
+    "missing, duplicate, blocked, incomplete, or noncanonical task state" \
+    "missing or duplicate exact Bats declaration" "unavailable base or feature mismatch" \
+    "expected Tier mismatch" "PR #54 inconsistent-state fixture"; do
+    assert_text "$checklist" "$contract"
+  done
 }
 
 @test "implementation plan requires RED before GREEN" {
-  assert_contains specs/issue-55-sdd-minimal/tasks.md "RED → GREEN"
+  tasks="$REPO_ROOT/specs/issue-55-sdd-minimal/tasks.md"
+  task3=$(awk '/^### TASK-003:/ { found=1 } /^### TASK-004:/ { exit } found { print }' "$tasks")
+  red=$(printf '%s\n' "$task3" | grep -n 'policy tests.*RED' | cut -d: -f1)
+  implementation=$(printf '%s\n' "$task3" | grep -n 'workflow.*Tier 2 validator' | cut -d: -f1)
+  green=$(printf '%s\n' "$task3" | grep -n 'policy tests.*GREEN' | cut -d: -f1)
+  [ "$red" -lt "$implementation" ]
+  [ "$implementation" -lt "$green" ]
   report=.superpowers/sdd/task-3-report.md
   [ -f "$REPO_ROOT/$report" ]
   assert_contains "$report" "## RED evidence"
