@@ -47,17 +47,27 @@ implementation files.
 
 The focused suite must reject each of these cases:
 
-- malformed or multi-value JSON
-- untracked or duplicate Issue AC
-- incomplete implemented mapping
-- invalid follow-up reason or Issue URL
-- missing or orphaned spec AC or task
-- state feature, tier, or phase mismatch
-- missing, duplicate, blocked, incomplete, or noncanonical task state
-- missing or duplicate exact Bats declaration
-- unavailable base or feature mismatch
-- expected Tier mismatch
-- PR #54 inconsistent-state fixture
+- dependency or PR base failure: the validator fails closed
+- empty, forged, stale, or wrong-HEAD evidence: independent review rejects it;
+  #50/PR #54 owns implementation-specific enforcement
+- hidden pipeline failure: the existing full-Bats and workflow gates fail closed
+- detached HEAD: independent review rejects unverifiable completion evidence;
+  #50/PR #54 owns implementation-specific enforcement
+- staged or dirty worktree: independent review reports it;
+  #50/PR #54 owns implementation-specific enforcement
+- malformed, missing, incomplete, or blocked state: validator/orchestration gates reject it
+- canonical state/tasks schema violations: the validator rejects unknown fields,
+  invalid values and types, and missing required fields
+- docs, script, or workflow path drift: policy tests reject it
+- malformed or multi-value traceability JSON: the validator rejects it
+- untracked or duplicate Issue AC: the validator rejects it
+- incomplete implemented mapping or invalid follow-up: the validator rejects it
+- missing or orphaned spec AC or task: the validator rejects it
+- missing or duplicate exact Bats declaration: the validator rejects it
+- unavailable base, changed-feature, state-feature, or expected-Tier mismatch:
+  the validator/workflow gate rejects it
+- PR #54 inconsistent-state fixture: focused regression coverage rejects both
+  orphaned source requirements and state/task inconsistency
 
 Before handoff, run focused and full Bats, shell syntax checks, both line budgets,
 the `CLAUDE.md` symlink check, the vendor diff check, and `git diff --check`.

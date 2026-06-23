@@ -32,7 +32,11 @@ check_workflow() {
   grep -F 'run: bats tests/' "$workflow" >/dev/null
   grep -F 'test("^sdd:tier-[012]$")' "$workflow" >/dev/null
   grep -F 'tier_count=$(printf' "$workflow" >/dev/null
-  grep -F 'Tier labels must be unique' "$workflow" >/dev/null
+  grep -F '[ "$tier_count" -ne 1 ]' "$workflow" >/dev/null
+  grep -F 'Tier label must be exactly one recognized sdd:tier-{0,1,2} label' "$workflow" >/dev/null
+  grep -F 'state_tier=$(jq -er' "$workflow" >/dev/null
+  grep -F '[ "$tier" != "$state_tier" ]' "$workflow" >/dev/null
+  grep -F 'PR Tier label does not match .sdd/state.json tier' "$workflow" >/dev/null
   tier2=$(awk '/if \[ "\$tier" = 2 \]; then/ { in_block=1 }
     in_block { print } in_block && /^[[:space:]]*fi$/ { exit }' "$workflow")
   assert_text "$tier2" 'scripts/check-sdd-contract.sh \'
@@ -53,6 +57,14 @@ check_workflow() {
   sed 's@scripts/check-sdd-contract.sh \\@true # validator moved@' "$workflow" > "$TMP_DIR/moved.yml"
   printf '%s\n' 'scripts/check-sdd-contract.sh --mode verify' >> "$TMP_DIR/moved.yml"
   run check_workflow "$TMP_DIR/moved.yml"
+  [ "$status" -ne 0 ]
+
+  sed 's/\[ "$tier_count" -ne 1 \]/[ "$tier_count" -gt 1 ]/' "$workflow" > "$TMP_DIR/missing-label.yml"
+  run check_workflow "$TMP_DIR/missing-label.yml"
+  [ "$status" -ne 0 ]
+
+  sed 's/\[ "$tier" != "$state_tier" \]/[ -z "$state_tier" ]/' "$workflow" > "$TMP_DIR/wrong-state.yml"
+  run check_workflow "$TMP_DIR/wrong-state.yml"
   [ "$status" -ne 0 ]
 }
 
@@ -87,12 +99,12 @@ check_workflow() {
   assert_text "$non_goals" "process evidence"
   assert_text "$non_goals" "attestation"
   checklist=$(section "$docs" "## Finite negative checklist")
-  for contract in "malformed or multi-value JSON" "untracked or duplicate Issue AC" \
-    "incomplete implemented mapping" "invalid follow-up reason or Issue URL" \
-    "missing or orphaned spec AC or task" "state feature, tier, or phase mismatch" \
-    "missing, duplicate, blocked, incomplete, or noncanonical task state" \
-    "missing or duplicate exact Bats declaration" "unavailable base or feature mismatch" \
-    "expected Tier mismatch" "PR #54 inconsistent-state fixture"; do
+  for contract in "dependency or PR base failure" "empty, forged, stale, or wrong-HEAD evidence" \
+    "hidden pipeline failure" "detached HEAD" "staged or dirty worktree" \
+    "malformed, missing, incomplete, or blocked state" "canonical state/tasks schema" \
+    "docs, script, or workflow path drift" "untracked or duplicate Issue AC" \
+    "missing or orphaned spec AC or task" "missing or duplicate exact Bats declaration" \
+    "PR #54 inconsistent-state fixture" "#50/PR #54 owns implementation-specific enforcement"; do
     assert_text "$checklist" "$contract"
   done
 }

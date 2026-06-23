@@ -194,6 +194,11 @@ write_valid_follow_up() {
 @test "accepts a valid verify contract" {
   check_verify
   [ "$status" -eq 0 ]
+
+  jq '.spec="specs/fixture/" | .note="review ready"' "$REPO_ROOT/.sdd/state.json" > "$REPO_ROOT/state.tmp" && mv "$REPO_ROOT/state.tmp" "$REPO_ROOT/.sdd/state.json"
+  jq '.[0] = {id:"fixture",phase:"verify",status:"completed"}' "$REPO_ROOT/.sdd/tasks.json" > "$REPO_ROOT/tasks.tmp" && mv "$REPO_ROOT/tasks.tmp" "$REPO_ROOT/.sdd/tasks.json"
+  check_verify
+  [ "$status" -eq 0 ]
 }
 
 @test "rejects state feature tier or phase mismatch" {
@@ -210,6 +215,18 @@ write_valid_follow_up() {
   jq '.phase = "implement"' "$REPO_ROOT/.sdd/state.json" > "$REPO_ROOT/state.tmp" && mv "$REPO_ROOT/state.tmp" "$REPO_ROOT/.sdd/state.json"
   check_verify
   assert_rejected "state phase"
+
+  write_valid_json
+  jq 'del(.feature)' "$REPO_ROOT/.sdd/state.json" > "$REPO_ROOT/state.tmp" && mv "$REPO_ROOT/state.tmp" "$REPO_ROOT/.sdd/state.json"
+  check_verify
+  assert_rejected "state.json shape"
+
+  for filter in '.tier=2.5' '.phase="invalid"' '.unexpected=true' '.spec=1' '.note=null'; do
+    write_valid_json
+    jq "$filter" "$REPO_ROOT/.sdd/state.json" > "$REPO_ROOT/state.tmp" && mv "$REPO_ROOT/state.tmp" "$REPO_ROOT/.sdd/state.json"
+    check_verify
+    assert_rejected "state.json shape"
+  done
 }
 
 @test "rejects missing duplicate or noncanonical feature task" {
@@ -226,6 +243,15 @@ write_valid_follow_up() {
   jq '.[0].unexpected = true' "$REPO_ROOT/.sdd/tasks.json" > "$REPO_ROOT/tasks.tmp" && mv "$REPO_ROOT/tasks.tmp" "$REPO_ROOT/.sdd/tasks.json"
   check_verify
   assert_rejected "canonical tasks.json"
+
+  for filter in '.[0].id=1' '.[0].phase="invalid"' '.[0].status="invalid"' \
+    '.[0].assigned_agent="other"' '.[0].handoff=1' '.[0].blocked_reason=false' \
+    'del(.[0].id)' 'del(.[0].phase)' 'del(.[0].status)'; do
+    write_valid_json
+    jq "$filter" "$REPO_ROOT/.sdd/tasks.json" > "$REPO_ROOT/tasks.tmp" && mv "$REPO_ROOT/tasks.tmp" "$REPO_ROOT/.sdd/tasks.json"
+    check_verify
+    assert_rejected "canonical tasks.json"
+  done
 }
 
 @test "rejects blocked tasks and incomplete feature status" {
@@ -273,6 +299,12 @@ write_valid_follow_up() {
   cp "$fixture/.sdd/state.json" "$REPO_ROOT/.sdd/state.json"
   cp "$fixture/.sdd/tasks.json" "$REPO_ROOT/.sdd/tasks.json"
   cp "$fixture/specs/development-rules/tasks.md" "$REPO_ROOT/specs/$FEATURE/tasks.md"
+
+  printf '%s\n' '- [ ] AC-002: source requirement lost from traceability' >> "$REPO_ROOT/specs/$FEATURE/spec.md"
+  check_freeze
+  assert_rejected "orphaned spec AC"
+
+  sed -i.bak '$d' "$REPO_ROOT/specs/$FEATURE/spec.md" && rm "$REPO_ROOT/specs/$FEATURE/spec.md.bak"
   check_verify
   assert_rejected "feature task"
 }

@@ -47,11 +47,16 @@ jobs:
           JSON
           )
           tier_count=$(printf '%s\n' "$tier_labels" | awk 'NF { count++ } END { print count+0 }')
-          if [ "$tier_count" -gt 1 ]; then
-            echo "::error::Tier labels must be unique."
+          if [ "$tier_count" -ne 1 ]; then
+            echo "::error::Tier label must be exactly one recognized sdd:tier-{0,1,2} label."
             exit 1
           fi
           tier=${tier_labels##*-}
+          state_tier=$(jq -er '.tier | select(type == "number" and floor == .)' .sdd/state.json)
+          if [ "$tier" != "$state_tier" ]; then
+            echo "::error::PR Tier label does not match .sdd/state.json tier."
+            exit 1
+          fi
           if [ "$tier" = 2 ]; then
             scripts/check-sdd-contract.sh \
               --feature "$(jq -r .feature .sdd/state.json)" \

@@ -125,8 +125,16 @@ fi
 state=$REPO_ROOT/.sdd/state.json
 task_state=$REPO_ROOT/.sdd/tasks.json
 json_single "$state"
-"$JQ_BIN" -e 'type == "object" and (keys | sort) == (["feature","tier","phase"] | sort)
-  and (.feature | type == "string") and (.tier | type == "number") and (.phase | type == "string")' "$state" >/dev/null || fail "state.json shape"
+"$JQ_BIN" -e '
+  def allowed: ["feature","tier","phase","spec","note"];
+  type == "object" and has("tier") and has("phase") and has("feature")
+  and all(keys[]; IN(allowed[]))
+  and (.feature | type == "string" and test("^[a-z0-9][a-z0-9-]*$"))
+  and (.tier | type == "number" and floor == . and IN(0,1,2))
+  and (.phase | type == "string" and IN("brainstorm","spec","plan","tasks","implement","verify","done"))
+  and ((has("spec") | not) or (.spec | type == "string"))
+  and ((has("note") | not) or (.note | type == "string"))
+' "$state" >/dev/null || fail "state.json shape"
 state_feature=$("$JQ_BIN" -r .feature "$state")
 state_tier=$("$JQ_BIN" -r .tier "$state")
 state_phase=$("$JQ_BIN" -r .phase "$state")
@@ -136,14 +144,15 @@ state_phase=$("$JQ_BIN" -r .phase "$state")
 
 json_single "$task_state"
 "$JQ_BIN" -e '
+  def allowed: ["id","phase","status","assigned_agent","handoff","blocked_reason"];
   type == "array" and all(.[]; type == "object"
-    and (keys | sort) == (["id","phase","status","assigned_agent","handoff","blocked_reason"] | sort)
+    and has("id") and has("phase") and has("status") and all(keys[]; IN(allowed[]))
     and (.id | type == "string" and test("^[a-z0-9][a-z0-9-]*$"))
-    and (.phase == "brainstorm" or .phase == "spec" or .phase == "plan" or .phase == "tasks" or .phase == "implement" or .phase == "verify" or .phase == "done")
-    and (.status == "pending" or .status == "in_progress" or .status == "completed" or .status == "blocked")
-    and (.assigned_agent == null or .assigned_agent == "claude" or .assigned_agent == "codex" or .assigned_agent == "gemini")
-    and (.handoff == null or (.handoff | type == "string"))
-    and (.blocked_reason == null or (.blocked_reason | type == "string")))
+    and (.phase | type == "string" and IN("brainstorm","spec","plan","tasks","implement","verify","done"))
+    and (.status | type == "string" and IN("pending","in_progress","completed","blocked"))
+    and ((has("assigned_agent") | not) or (.assigned_agent | IN("claude","codex","gemini",null)))
+    and ((has("handoff") | not) or (.handoff == null or (.handoff | type == "string")))
+    and ((has("blocked_reason") | not) or (.blocked_reason == null or (.blocked_reason | type == "string"))))
 ' "$task_state" >/dev/null || fail "canonical tasks.json"
 task_count=$("$JQ_BIN" --arg feature "$feature" '[.[] | select(.id == $feature)] | length' "$task_state")
 [ "$task_count" -gt 0 ] || fail "feature task missing"
