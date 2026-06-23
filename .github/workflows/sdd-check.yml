@@ -42,22 +42,22 @@ jobs:
 
       - name: Tier 2 traceability gate
         run: |
-          tier_labels=$(jq -r '.[] | select(test("^sdd:tier-[012]$"))' <<'JSON'
+          state_tier=$(jq -er '.tier | select(type == "number" and floor == .)' .sdd/state.json)
+          if [ "$state_tier" = 2 ]; then
+            tier_labels=$(jq -r '.[] | select(test("^sdd:tier-[012]$"))' <<'JSON'
           ${{ toJSON(github.event.pull_request.labels.*.name) }}
           JSON
-          )
-          tier_count=$(printf '%s\n' "$tier_labels" | awk 'NF { count++ } END { print count+0 }')
-          if [ "$tier_count" -ne 1 ]; then
-            echo "::error::Tier label must be exactly one recognized sdd:tier-{0,1,2} label."
-            exit 1
-          fi
-          tier=${tier_labels##*-}
-          state_tier=$(jq -er '.tier | select(type == "number" and floor == .)' .sdd/state.json)
-          if [ "$tier" != "$state_tier" ]; then
-            echo "::error::PR Tier label does not match .sdd/state.json tier."
-            exit 1
-          fi
-          if [ "$tier" = 2 ]; then
+            )
+            tier_count=$(printf '%s\n' "$tier_labels" | awk 'NF { count++ } END { print count+0 }')
+            if [ "$tier_count" -ne 1 ]; then
+              echo "::error::Tier label must be exactly one recognized sdd:tier-{0,1,2} label."
+              exit 1
+            fi
+            tier=${tier_labels##*-}
+            if [ "$tier" != 2 ]; then
+              echo "::error::PR Tier label must be sdd:tier-2 for Tier 2 state."
+              exit 1
+            fi
             scripts/check-sdd-contract.sh \
               --feature "$(jq -r .feature .sdd/state.json)" \
               --mode verify \

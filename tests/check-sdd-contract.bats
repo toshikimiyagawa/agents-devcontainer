@@ -61,6 +61,11 @@ assert_rejected() {
   [[ "$output" == *"$1"* ]]
 }
 
+assert_exact_rejected() {
+  [ "$status" -eq 1 ]
+  [ "$output" = "[sdd-contract] ERROR: $1" ]
+}
+
 mutate_traceability() {
   local filter=$1
   jq "$filter" "$REPO_ROOT/specs/$FEATURE/traceability.json" > "$REPO_ROOT/traceability.tmp"
@@ -78,6 +83,12 @@ write_valid_follow_up() {
 }
 
 @test "rejects malformed or multi-value traceability JSON" {
+  run env GIT_BIN=missing-sdd-git JQ_BIN="$JQ_BIN" "$VALIDATOR" --feature "$FEATURE" --mode freeze
+  assert_exact_rejected "git dependency unavailable"
+
+  run env GIT_BIN="$GIT_BIN" JQ_BIN=missing-sdd-jq "$VALIDATOR" --feature "$FEATURE" --mode freeze
+  assert_exact_rejected "jq dependency unavailable"
+
   printf '%s\n' '{broken' > "$REPO_ROOT/specs/$FEATURE/traceability.json"
   check_freeze
   assert_rejected "traceability.json"
@@ -159,6 +170,13 @@ write_valid_follow_up() {
 }
 
 @test "rejects missing and orphaned spec or task references" {
+  for artifact in spec.md plan.md tasks.md traceability.json; do
+    mv "$REPO_ROOT/specs/$FEATURE/$artifact" "$REPO_ROOT/$artifact"
+    check_freeze
+    assert_exact_rejected "required artifact missing: $artifact"
+    mv "$REPO_ROOT/$artifact" "$REPO_ROOT/specs/$FEATURE/$artifact"
+  done
+
   mutate_traceability '.criteria[0].spec_acs = ["AC-999"]'
   check_freeze
   assert_rejected "spec AC reference"

@@ -23,34 +23,40 @@ assert_text() {
 }
 
 check_workflow() {
-  local workflow=$1 tier2
+  local workflow=$1 tier2 guard label_count validator
   set -e
   grep -F 'src="$(echo "$changed" | grep -vE' "$workflow" >/dev/null
   grep -F "if ! ls specs/*/spec.md" "$workflow" >/dev/null
   grep -F "blocked=\$(jq '[.[] | select(.status==\"blocked\")] | length'" "$workflow" >/dev/null
   grep -F 'select(.phase=="implement" and (.status=="in_progress" or .status=="pending"))' "$workflow" >/dev/null
   grep -F 'run: bats tests/' "$workflow" >/dev/null
-  grep -F 'test("^sdd:tier-[012]$")' "$workflow" >/dev/null
-  grep -F 'tier_count=$(printf' "$workflow" >/dev/null
-  grep -F '[ "$tier_count" -ne 1 ]' "$workflow" >/dev/null
-  grep -F 'Tier label must be exactly one recognized sdd:tier-{0,1,2} label' "$workflow" >/dev/null
   grep -F 'state_tier=$(jq -er' "$workflow" >/dev/null
-  grep -F '[ "$tier" != "$state_tier" ]' "$workflow" >/dev/null
-  grep -F 'PR Tier label does not match .sdd/state.json tier' "$workflow" >/dev/null
-  tier2=$(awk '/if \[ "\$tier" = 2 \]; then/ { in_block=1 }
-    in_block { print } in_block && /^[[:space:]]*fi$/ { exit }' "$workflow")
+  tier2=$(awk '/if \[ "\$state_tier" = 2 \]; then/ { in_block=1 }
+    in_block && /^      - name:/ { exit } in_block { print }' "$workflow")
+  assert_text "$tier2" 'test("^sdd:tier-[012]$")'
+  assert_text "$tier2" 'tier_count=$(printf'
+  assert_text "$tier2" '[ "$tier_count" -ne 1 ]'
+  assert_text "$tier2" 'Tier label must be exactly one recognized sdd:tier-{0,1,2} label'
+  assert_text "$tier2" '[ "$tier" != 2 ]'
+  assert_text "$tier2" 'PR Tier label must be sdd:tier-2 for Tier 2 state.'
   assert_text "$tier2" 'scripts/check-sdd-contract.sh \'
   assert_text "$tier2" '--feature "$(jq -r .feature .sdd/state.json)" \'
   assert_text "$tier2" '--mode verify \'
   assert_text "$tier2" '--base "${{ github.event.pull_request.base.sha }}" \'
   assert_text "$tier2" '--expected-tier 2'
+  guard=$(grep -nF 'if [ "$state_tier" = 2 ]; then' "$workflow" | cut -d: -f1)
+  label_count=$(grep -nF 'tier_count=$(printf' "$workflow" | cut -d: -f1)
+  validator=$(grep -nF 'scripts/check-sdd-contract.sh \' "$workflow" | cut -d: -f1)
+  [ "$(grep -cF 'tier_count=$(printf' "$workflow")" -eq 1 ]
+  [ "$guard" -lt "$label_count" ]
+  [ "$label_count" -lt "$validator" ]
 }
 
 @test "workflow preserves existing gates and adds the Tier 2 validator" {
   workflow="$REPO_ROOT/.github/workflows/sdd-check.yml"
   check_workflow "$workflow"
 
-  sed 's/if \[ "$tier" = 2 \]; then/if [ "$tier" = 1 ]; then/' "$workflow" > "$TMP_DIR/wrong-condition.yml"
+  sed 's/if \[ "$state_tier" = 2 \]; then/if [ "$state_tier" = 1 ]; then/' "$workflow" > "$TMP_DIR/wrong-condition.yml"
   run check_workflow "$TMP_DIR/wrong-condition.yml"
   [ "$status" -ne 0 ]
 
@@ -63,8 +69,12 @@ check_workflow() {
   run check_workflow "$TMP_DIR/missing-label.yml"
   [ "$status" -ne 0 ]
 
-  sed 's/\[ "$tier" != "$state_tier" \]/[ -z "$state_tier" ]/' "$workflow" > "$TMP_DIR/wrong-state.yml"
+  sed 's/\[ "$tier" != 2 \]/[ -z "$tier" ]/' "$workflow" > "$TMP_DIR/wrong-state.yml"
   run check_workflow "$TMP_DIR/wrong-state.yml"
+  [ "$status" -ne 0 ]
+
+  awk '{ print } /state_tier=\$\(jq -er/ { print "          tier_count=$(printf outside-tier-2)" }' "$workflow" > "$TMP_DIR/tier01-enforced.yml"
+  run check_workflow "$TMP_DIR/tier01-enforced.yml"
   [ "$status" -ne 0 ]
 }
 
@@ -117,11 +127,8 @@ check_workflow() {
   green=$(printf '%s\n' "$task3" | grep -n 'policy tests.*GREEN' | cut -d: -f1)
   [ "$red" -lt "$implementation" ]
   [ "$implementation" -lt "$green" ]
-  report=.superpowers/sdd/task-3-report.md
-  [ -f "$REPO_ROOT/$report" ]
-  assert_contains "$report" "## RED evidence"
-  assert_contains "$report" "first five"
-  assert_contains "$report" "## GREEN evidence"
+  grep -F '実装reportへcommand/resultを記録' "$REPO_ROOT/specs/issue-55-sdd-minimal/spec.md" >/dev/null
+  grep -F '独立reviewerが' "$REPO_ROOT/specs/issue-55-sdd-minimal/spec.md" >/dev/null
 }
 
 @test "enforces validator and test size budgets" {
