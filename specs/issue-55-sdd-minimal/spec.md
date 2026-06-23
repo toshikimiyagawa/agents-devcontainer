@@ -2,7 +2,7 @@
 
 - Feature: `issue-55-sdd-minimal`
 - Tier: 2
-- Status: proposed
+- Status: frozen
 - Source issue: https://github.com/toshikimiyagawa/agents-devcontainer/issues/55
 - Design: [2026-06-24-issue-55-sdd-minimal-design.md](../../docs/superpowers/specs/2026-06-24-issue-55-sdd-minimal-design.md)
 
