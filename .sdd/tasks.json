@@ -42,7 +42,7 @@
   {
     "id": "issue-55-sdd-minimal",
     "phase": "implement",
-    "status": "completed",
+    "status": "in_progress",
     "assigned_agent": "codex",
     "handoff": "specs/issue-55-sdd-minimal/handoff.md",
     "blocked_reason": null
