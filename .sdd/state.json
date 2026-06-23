@@ -1,5 +1,5 @@
 {
-  "feature": "devcontainer-rebuild-smoke",
+  "feature": "issue-55-sdd-minimal",
   "tier": 2,
-  "phase": "verify"
+  "phase": "brainstorm"
 }
