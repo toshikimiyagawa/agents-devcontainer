@@ -10,15 +10,16 @@ setup() {
   printf '%s\n' '### TASK-001: Fixture' '- [x] complete' > "$REPO_ROOT/specs/$FEATURE/tasks.md"
   printf '%s\n' '@test "fixture passes" {' '  true' '}' > "$REPO_ROOT/tests/fixture.bats"
 
-  VALIDATOR="$BATS_TEST_DIRNAME/../scripts/check-sdd-contract.sh"
-  write_valid_json
   git -C "$REPO_ROOT" init -q
   git -C "$REPO_ROOT" config user.email fixture@example.com
   git -C "$REPO_ROOT" config user.name Fixture
-  git -C "$REPO_ROOT" add .
-  git -C "$REPO_ROOT" commit -qm base
+  git -C "$REPO_ROOT" commit --allow-empty -qm base
   BASE=$(git -C "$REPO_ROOT" rev-parse HEAD)
-  printf '%s\n' '# changed for verify' >> "$REPO_ROOT/specs/$FEATURE/plan.md"
+
+  VALIDATOR="$BATS_TEST_DIRNAME/../scripts/check-sdd-contract.sh"
+  write_valid_json
+  git -C "$REPO_ROOT" add .
+  git -C "$REPO_ROOT" commit -qm feature
 }
 
 teardown() {
@@ -66,6 +67,11 @@ mutate_traceability() {
   mv "$REPO_ROOT/traceability.tmp" "$REPO_ROOT/specs/$FEATURE/traceability.json"
 }
 
+write_valid_follow_up() {
+  write_valid_json
+  mutate_traceability '.criteria[0] = {issue_ac:"ISSUE-AC-001",text:"later",disposition:"follow_up",reason:"tracked elsewhere",follow_up:"https://github.com/example/project/issues/2"}'
+}
+
 @test "accepts a valid freeze contract" {
   check_freeze
   [ "$status" -eq 0 ]
@@ -100,20 +106,56 @@ mutate_traceability() {
   assert_rejected "implemented mapping"
 
   write_valid_json
-  mutate_traceability '.criteria[0].reason = "not allowed"'
+  mutate_traceability 'del(.criteria[0].spec_acs)'
   check_freeze
-  assert_rejected "implemented fields"
+  assert_rejected "implemented mapping"
+
+  write_valid_json
+  mutate_traceability '.criteria[0].tasks = []'
+  check_freeze
+  assert_rejected "implemented mapping"
+
+  write_valid_json
+  mutate_traceability 'del(.criteria[0].tasks)'
+  check_freeze
+  assert_rejected "implemented mapping"
+
+  write_valid_json
+  mutate_traceability '.criteria[0].tests = []'
+  check_freeze
+  assert_rejected "implemented mapping"
+
+  write_valid_json
+  mutate_traceability 'del(.criteria[0].tests)'
+  check_freeze
+  assert_rejected "implemented mapping"
 }
 
 @test "rejects invalid follow-up mapping" {
-  mutate_traceability '.criteria[0] = {issue_ac:"ISSUE-AC-001",text:"later",disposition:"follow_up",reason:"",follow_up:"http://example.com/1"}'
+  write_valid_follow_up
+  mutate_traceability '.criteria[0].reason = ""'
   check_freeze
   assert_rejected "follow_up mapping"
 
-  write_valid_json
-  mutate_traceability '.criteria[0] = {issue_ac:"ISSUE-AC-001",text:"later",disposition:"follow_up",reason:"tracked elsewhere",follow_up:"https://example.com/not-github"}'
+  write_valid_follow_up
+  mutate_traceability 'del(.criteria[0].reason)'
+  check_freeze
+  assert_rejected "follow_up mapping"
+
+  write_valid_follow_up
+  mutate_traceability '.criteria[0].follow_up = "http://github.com/example/project/issues/2"'
   check_freeze
   assert_rejected "GitHub Issue URL"
+
+  write_valid_follow_up
+  mutate_traceability '.criteria[0].follow_up = "https://example.com/issues/2"'
+  check_freeze
+  assert_rejected "GitHub Issue URL"
+
+  write_valid_follow_up
+  mutate_traceability '.criteria[0].spec_acs = ["AC-001"] | .criteria[0].tasks = ["TASK-001"] | .criteria[0].tests = [{file:"tests/fixture.bats",name:"fixture passes"}]'
+  check_freeze
+  assert_rejected "follow_up mapping"
 }
 
 @test "rejects missing and orphaned spec or task references" {
@@ -175,7 +217,7 @@ mutate_traceability() {
 }
 
 @test "rejects blocked tasks and incomplete feature status" {
-  jq '.[0].status = "blocked" | .[0].blocked_reason = "fixture"' "$REPO_ROOT/.sdd/tasks.json" > "$REPO_ROOT/tasks.tmp" && mv "$REPO_ROOT/tasks.tmp" "$REPO_ROOT/.sdd/tasks.json"
+  jq '. += [{id:"unrelated",phase:"implement",status:"blocked",assigned_agent:null,handoff:null,blocked_reason:"fixture"}]' "$REPO_ROOT/.sdd/tasks.json" > "$REPO_ROOT/tasks.tmp" && mv "$REPO_ROOT/tasks.tmp" "$REPO_ROOT/.sdd/tasks.json"
   check_verify
   assert_rejected "blocked task"
 
@@ -201,6 +243,8 @@ mutate_traceability() {
 
   mkdir -p "$REPO_ROOT/specs/other"
   printf '%s\n' '# changed' > "$REPO_ROOT/specs/other/spec.md"
+  git -C "$REPO_ROOT" add specs/other/spec.md
+  git -C "$REPO_ROOT" commit -qm other-feature
   check_verify
   assert_rejected "changed feature"
 }
