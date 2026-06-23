@@ -23,7 +23,7 @@ assert_text() {
 }
 
 check_workflow() {
-  local workflow=$1 tier2 guard label_count validator
+  local workflow=$1 tier2 state reverse guard label_count validator
   set -e
   grep -F 'src="$(echo "$changed" | grep -vE' "$workflow" >/dev/null
   grep -F "if ! ls specs/*/spec.md" "$workflow" >/dev/null
@@ -31,6 +31,10 @@ check_workflow() {
   grep -F 'select(.phase=="implement" and (.status=="in_progress" or .status=="pending"))' "$workflow" >/dev/null
   grep -F 'run: bats tests/' "$workflow" >/dev/null
   grep -F 'state_tier=$(jq -er' "$workflow" >/dev/null
+  grep -F 'has_tier2_label=$(jq -er' "$workflow" >/dev/null
+  grep -F 'index("sdd:tier-2") != null' "$workflow" >/dev/null
+  grep -F 'if [ "$state_tier" != 2 ] && [ "$has_tier2_label" = true ]; then' "$workflow" >/dev/null
+  grep -F 'PR Tier label sdd:tier-2 does not match lower-tier state.' "$workflow" >/dev/null
   tier2=$(awk '/if \[ "\$state_tier" = 2 \]; then/ { in_block=1 }
     in_block && /^      - name:/ { exit } in_block { print }' "$workflow")
   assert_text "$tier2" 'test("^sdd:tier-[012]$")'
@@ -44,10 +48,14 @@ check_workflow() {
   assert_text "$tier2" '--mode verify \'
   assert_text "$tier2" '--base "${{ github.event.pull_request.base.sha }}" \'
   assert_text "$tier2" '--expected-tier 2'
+  state=$(grep -nF 'state_tier=$(jq -er' "$workflow" | cut -d: -f1)
+  reverse=$(grep -nF 'if [ "$state_tier" != 2 ] && [ "$has_tier2_label" = true ]; then' "$workflow" | cut -d: -f1)
   guard=$(grep -nF 'if [ "$state_tier" = 2 ]; then' "$workflow" | cut -d: -f1)
   label_count=$(grep -nF 'tier_count=$(printf' "$workflow" | cut -d: -f1)
   validator=$(grep -nF 'scripts/check-sdd-contract.sh \' "$workflow" | cut -d: -f1)
   [ "$(grep -cF 'tier_count=$(printf' "$workflow")" -eq 1 ]
+  [ "$state" -lt "$reverse" ]
+  [ "$reverse" -lt "$guard" ]
   [ "$guard" -lt "$label_count" ]
   [ "$label_count" -lt "$validator" ]
 }
@@ -75,6 +83,10 @@ check_workflow() {
 
   awk '{ print } /state_tier=\$\(jq -er/ { print "          tier_count=$(printf outside-tier-2)" }' "$workflow" > "$TMP_DIR/tier01-enforced.yml"
   run check_workflow "$TMP_DIR/tier01-enforced.yml"
+  [ "$status" -ne 0 ]
+
+  sed 's/if \[ "$state_tier" != 2 \] && \[ "$has_tier2_label" = true \]; then/if false; then/' "$workflow" > "$TMP_DIR/reverse-mismatch.yml"
+  run check_workflow "$TMP_DIR/reverse-mismatch.yml"
   [ "$status" -ne 0 ]
 }
 

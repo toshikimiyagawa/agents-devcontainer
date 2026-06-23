@@ -43,6 +43,14 @@ jobs:
       - name: Tier 2 traceability gate
         run: |
           state_tier=$(jq -er '.tier | select(type == "number" and floor == .)' .sdd/state.json)
+          has_tier2_label=$(jq -er 'index("sdd:tier-2") != null' <<'JSON'
+          ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          JSON
+          )
+          if [ "$state_tier" != 2 ] && [ "$has_tier2_label" = true ]; then
+            echo "::error::PR Tier label sdd:tier-2 does not match lower-tier state."
+            exit 1
+          fi
           if [ "$state_tier" = 2 ]; then
             tier_labels=$(jq -r '.[] | select(test("^sdd:tier-[012]$"))' <<'JSON'
           ${{ toJSON(github.event.pull_request.labels.*.name) }}
