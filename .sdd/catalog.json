@@ -1,0 +1,9 @@
+{
+  "types": [
+    {
+      "id": "rules",
+      "label": "開発ルール一覧",
+      "id_prefix": "RUL"
+    }
+  ]
+}

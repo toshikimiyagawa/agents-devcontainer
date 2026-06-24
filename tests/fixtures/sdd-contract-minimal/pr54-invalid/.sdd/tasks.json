@@ -1,0 +1,10 @@
+[
+  {
+    "id": "devcontainer-rebuild-smoke",
+    "phase": "verify",
+    "status": "completed",
+    "assigned_agent": "codex",
+    "handoff": null,
+    "blocked_reason": null
+  }
+]
