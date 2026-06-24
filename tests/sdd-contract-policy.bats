@@ -22,42 +22,47 @@ assert_text() {
   printf '%s\n' "$1" | tr '\n' ' ' | grep -F -- "$2" >/dev/null
 }
 
+must() {
+  "$@" || check_failed=1
+}
+
 check_workflow() {
-  local workflow=$1 tier2 state reverse guard label_count validator
-  set -e
-  grep -F 'src="$(echo "$changed" | grep -vE' "$workflow" >/dev/null
-  grep -F "if ! ls specs/*/spec.md" "$workflow" >/dev/null
-  grep -F "blocked=\$(jq '[.[] | select(.status==\"blocked\")] | length'" "$workflow" >/dev/null
-  grep -F 'select(.phase=="implement" and (.status=="in_progress" or .status=="pending"))' "$workflow" >/dev/null
-  grep -F 'run: bats tests/' "$workflow" >/dev/null
-  grep -F 'state_tier=$(jq -er' "$workflow" >/dev/null
-  grep -F 'has_tier2_label=$(jq -r' "$workflow" >/dev/null
-  grep -F 'index("sdd:tier-2") != null' "$workflow" >/dev/null
-  grep -F 'if [ "$state_tier" != 2 ] && [ "$has_tier2_label" = true ]; then' "$workflow" >/dev/null
-  grep -F 'PR Tier label sdd:tier-2 does not match lower-tier state.' "$workflow" >/dev/null
+  local workflow=$1 tier2 state reverse guard label_count validator check_failed=0
+  must grep -Fq 'types: [opened, synchronize, reopened, labeled, unlabeled]' "$workflow"
+  must grep -Fq 'src="$(echo "$changed" | grep -vE' "$workflow"
+  must grep -Fq "if ! ls specs/*/spec.md" "$workflow"
+  must grep -Fq "blocked=\$(jq '[.[] | select(.status==\"blocked\")] | length'" "$workflow"
+  must grep -Fq 'select(.phase=="implement" and (.status=="in_progress" or .status=="pending"))' "$workflow"
+  must grep -Fq 'run: bats tests/' "$workflow"
+  must grep -Fq 'state_tier=$(jq -er' "$workflow"
+  must grep -Fq 'has_tier2_label=$(jq -r' "$workflow"
+  must grep -Fq 'index("sdd:tier-2") != null' "$workflow"
+  must grep -Fq 'if [ "$state_tier" != 2 ] && [ "$has_tier2_label" = true ]; then' "$workflow"
+  must grep -Fq 'PR Tier label sdd:tier-2 does not match lower-tier state.' "$workflow"
   tier2=$(awk '/if \[ "\$state_tier" = 2 \]; then/ { in_block=1 }
     in_block && /^      - name:/ { exit } in_block { print }' "$workflow")
-  assert_text "$tier2" 'test("^sdd:tier-[012]$")'
-  assert_text "$tier2" 'tier_count=$(printf'
-  assert_text "$tier2" '[ "$tier_count" -ne 1 ]'
-  assert_text "$tier2" 'Tier label must be exactly one recognized sdd:tier-{0,1,2} label'
-  assert_text "$tier2" '[ "$tier" != 2 ]'
-  assert_text "$tier2" 'PR Tier label must be sdd:tier-2 for Tier 2 state.'
-  assert_text "$tier2" 'scripts/check-sdd-contract.sh \'
-  assert_text "$tier2" '--feature "$(jq -r .feature .sdd/state.json)" \'
-  assert_text "$tier2" '--mode verify \'
-  assert_text "$tier2" '--base "${{ github.event.pull_request.base.sha }}" \'
-  assert_text "$tier2" '--expected-tier 2'
+  must assert_text "$tier2" 'test("^sdd:tier-[012]$")'
+  must assert_text "$tier2" 'tier_count=$(printf'
+  must assert_text "$tier2" '[ "$tier_count" -ne 1 ]'
+  must assert_text "$tier2" 'Tier label must be exactly one recognized sdd:tier-{0,1,2} label'
+  must assert_text "$tier2" '[ "$tier" != 2 ]'
+  must assert_text "$tier2" 'PR Tier label must be sdd:tier-2 for Tier 2 state.'
+  must assert_text "$tier2" 'scripts/check-sdd-contract.sh \'
+  must assert_text "$tier2" '--feature "$(jq -r .feature .sdd/state.json)" \'
+  must assert_text "$tier2" '--mode verify \'
+  must assert_text "$tier2" '--base "${{ github.event.pull_request.base.sha }}" \'
+  must assert_text "$tier2" '--expected-tier 2'
   state=$(grep -nF 'state_tier=$(jq -er' "$workflow" | cut -d: -f1)
   reverse=$(grep -nF 'if [ "$state_tier" != 2 ] && [ "$has_tier2_label" = true ]; then' "$workflow" | cut -d: -f1)
   guard=$(grep -nF 'if [ "$state_tier" = 2 ]; then' "$workflow" | cut -d: -f1)
   label_count=$(grep -nF 'tier_count=$(printf' "$workflow" | cut -d: -f1)
   validator=$(grep -nF 'scripts/check-sdd-contract.sh \' "$workflow" | cut -d: -f1)
-  [ "$(grep -cF 'tier_count=$(printf' "$workflow")" -eq 1 ]
-  [ "$state" -lt "$reverse" ]
-  [ "$reverse" -lt "$guard" ]
-  [ "$guard" -lt "$label_count" ]
-  [ "$label_count" -lt "$validator" ]
+  must test "$(grep -cF 'tier_count=$(printf' "$workflow")" -eq 1
+  must test "$state" -lt "$reverse"
+  must test "$reverse" -lt "$guard"
+  must test "$guard" -lt "$label_count"
+  must test "$label_count" -lt "$validator"
+  [ "$check_failed" -eq 0 ]
 }
 
 run_tier_gate() {
@@ -182,6 +187,8 @@ run_tier_gate() {
 }
 
 @test "vendored SDD guide remains unchanged" {
+  grep -A4 -F 'uses: actions/checkout@v4' "$REPO_ROOT/.github/workflows/test.yml" |
+    grep -F 'fetch-depth: 0' >/dev/null
   git -C "$REPO_ROOT" diff --quiet --submodule=short origin/main...HEAD -- vendor/ai-sdd-guide
   git -C "$REPO_ROOT" diff --quiet --submodule=short -- vendor/ai-sdd-guide
 }
