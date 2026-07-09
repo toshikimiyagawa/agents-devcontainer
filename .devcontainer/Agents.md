@@ -26,7 +26,7 @@ Dockerfile       →  FROM ghcr.io/...  (このリポジトリ自身の dogfood 
 
 ## 環境構成
 
-- **ベースイメージ**: Ubuntu 24.04 LTS (Noble) またはそれ以降（現在は 26.04 を想定）。
+- **ベースイメージ**: Ubuntu 26.04。
 - **ユーザー**: `ubuntu` (UID 1000) を使用。
   - ホストとのパーミッション不整合を避けるため、root ではなく `ubuntu` ユーザーで実行すること。
   - 必要に応じて `sudo` がパスワードなしで利用可能。
@@ -39,22 +39,25 @@ Dockerfile       →  FROM ghcr.io/...  (このリポジトリ自身の dogfood 
   - `initializeCommand` で `dotfiles/.claude`, `dotfiles/.gemini`, `dotfiles/.codex`, `dotfiles/.hermes` ディレクトリの存在を保証すること。
   - Hermes superpowers bootstrap は Hermes state 復元後に `agents-post-create` で実行する。`hermes skills install --yes skills-sh/obra/superpowers` が成功したら `dotfiles/.hermes/.agents-superpowers-installed` を marker とし、installed skill を `dotfiles/.hermes/skills` へ同期する。再実行時は marker と実体 skill の両方がある場合だけ skip する。network/registry failure は non-fatal warning として扱う。
 
-## dotfiles の仕組み（レイヤー構造）
+## dotfiles の仕組み
 
-`agents-post-create` が2層の dotfiles を `$HOME` にシンボリックリンクする:
+`agents-post-create` は `/workspace/dotfiles/` を `$HOME` にシンボリックリンクする。
+`agents-dotfiles-sync` は `/workspace/vendor/agents-devcontainer/dotfiles` を upstream として参照し、
+自分で編集していないベースファイルだけを `/workspace/dotfiles/` へ同期する。
 
-| 優先度 | ソース | 説明 |
+| パス | 説明 |
 |---|---|---|
-| 高 | `/workspace/.devcontainer/dotfiles/` | プロジェクト固有の上書き |
-| 低 | `/opt/agents/dotfiles/` | イメージに焼き込まれたデフォルト |
+| `/workspace/dotfiles/` | container runtime が参照する project-local dotfiles。runtime state は gitignore 済み。 |
+| `/workspace/vendor/agents-devcontainer/dotfiles` | upstream のベース dotfiles。submodule 更新後の同期元。 |
 
-**上書きの単位はファイル/ディレクトリ単位（マージではない）**。例えば `.config/` を上書きする場合、プロジェクト側は `.config/` 全体を提供する必要がある。
+**同期の単位はファイル単位**。`dotfiles/.agents-dotfiles.lock` を基準に、
+ローカルで編集していないファイルだけが upstream に追従する。
 
 `.zshrc` を全置換せずに拡張したい場合:
 
 ```zsh
 # プロジェクトの .zshrc
-source /opt/agents/dotfiles/.zshrc
+source /workspace/vendor/agents-devcontainer/dotfiles/.zshrc
 # ここにプロジェクト固有の設定を追記
 export MY_API_KEY=...
 ```
@@ -95,6 +98,6 @@ dogfood 設定はホストの identity を自動転送しない。identity を�
 - `Gemini CLI` (gemini)
 - `Codex CLI` (codex) — OpenAI によるターミナルベースの AI エージェント。
 - `Hermes Agent` (hermes) — NousResearch による自己改善型の自律 AI エージェント。`USER ubuntu` で per-user インストール（本体は `~/.hermes/hermes-agent`、コマンドは `~/.local/bin/hermes`、Claude Code と同じレイアウト）。ブラウザ自動化（Playwright/Chromium）込み。Hermes 本体は container image 側に残し、runtime state subpaths は `dotfiles/.hermes/` に永続化する。host `~/.hermes` とは共有しない。`skills/` は symlink せず復元・同期する。`postCreate` で `skills-sh/obra/superpowers` を bootstrap する。初回利用時に `hermes setup` でプロバイダを設定する。
-- `ai-sdd-guide` — Spec-Driven Development フレームワーク。`scaffold.sh` が git submodule として `vendor/ai-sdd-guide` に配置する。ルール: `vendor/ai-sdd-guide/rules/`、ドキュメント: `vendor/ai-sdd-guide/docs/`。
+- `ai-sdd-guide` — Spec-Driven Development フレームワーク。agents-devcontainer とは独立して導入する。ルール: `vendor/ai-sdd-guide/rules/`、ドキュメント: `vendor/ai-sdd-guide/docs/`。
 - `Superpowers` — Claude Code plugin。`devcontainer up` には組み込まず、Claude 内で `/plugin install superpowers@claude-plugins-official` を実行して opt-in する。状態は `~/.claude/`（symlink 先 = `dotfiles/.claude/`）に永続化。
 - `GitHub CLI` (gh) — git 認証に使用。
