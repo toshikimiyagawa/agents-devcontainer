@@ -44,6 +44,7 @@ jobs:
       - name: Tier 2 traceability gate
         run: |
           state_tier=$(jq -er '.tier | select(type == "number" and floor == .)' .sdd/state.json)
+          state_phase=$(jq -er '.phase | select(type == "string")' .sdd/state.json)
           has_tier2_label=$(jq -r 'index("sdd:tier-2") != null' <<'JSON'
           ${{ toJSON(github.event.pull_request.labels.*.name) }}
           JSON
@@ -67,11 +68,24 @@ jobs:
               echo "::error::PR Tier label must be sdd:tier-2 for Tier 2 state."
               exit 1
             fi
-            scripts/check-sdd-contract.sh \
-              --feature "$(jq -r .feature .sdd/state.json)" \
-              --mode verify \
-              --base "${{ github.event.pull_request.base.sha }}" \
-              --expected-tier 2
+            case "$state_phase" in
+              implement)
+                scripts/check-sdd-contract.sh \
+                  --feature "$(jq -r .feature .sdd/state.json)" \
+                  --mode freeze
+                ;;
+              verify)
+                scripts/check-sdd-contract.sh \
+                  --feature "$(jq -r .feature .sdd/state.json)" \
+                  --mode verify \
+                  --base "${{ github.event.pull_request.base.sha }}" \
+                  --expected-tier 2
+                ;;
+              *)
+                echo "::error::Tier 2 PR state phase must be implement or verify."
+                exit 1
+                ;;
+            esac
           fi
 
       - name: Tests
