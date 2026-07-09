@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_HOME="${AGENTS_STATE_HOME:-/usr/local/share/agents-devcontainer/state}"
+
+log() { printf '[agents-feature-post-start] %s\n' "$*"; }
+
+mkdir -p "$STATE_HOME/gh"
+
+if command -v git >/dev/null 2>&1; then
+  workspace="${WORKSPACE:-${PWD:-}}"
+  if [ -n "$workspace" ]; then
+    git config --global --get-all safe.directory 2>/dev/null | grep -qx "$workspace" \
+      || git config --global --add safe.directory "$workspace"
+  fi
+fi
+
+log "done"
+
