@@ -16,10 +16,12 @@ Claude Code, Gemini CLI, Codex CLI, Hermes Agent などのエージェントツ�
 - **モダンな開発ツール**: uv (Python), Neovim, Tmux, Lazygit, Yazi 等を同梱。
 - **ゼロフリクション認証**: `gh auth login` 一度でトークンが named volume に永続化。rebuild 後も再認証不要。
 
-## 初回セットアップ（このリポジトリのメンテナ向け）
+## GHCR package 管理（このリポジトリのメンテナ向け）
 
 `main` に push すると GitHub Actions が `ghcr.io/toshikimiyagawa/agents-devcontainer` をビルドして publish します。
-**ただし初回 push 後に以下を手動で行う必要があります：**
+現在の package は public として利用可能です。
+
+package を削除して作り直した場合、初回 push 後に以下を手動で行う必要があります：
 
 1. **イメージを Public に変更**: [github.com → Packages → agents-devcontainer → Package settings](https://github.com/users/toshikimiyagawa/packages/container/agents-devcontainer/settings) で Visibility を **Public** に変更する（デフォルトは Private）。
 2. **リポジトリとリンク**: 同ページで `agents-devcontainer` リポジトリにリンクする（以降の workflow push が `GITHUB_TOKEN` だけで動く）。
@@ -42,21 +44,27 @@ Claude Code, Gemini CLI, Codex CLI, Hermes Agent などのエージェントツ�
 # プロジェクトディレクトリで実行
 curl -fsSL https://raw.githubusercontent.com/toshikimiyagawa/agents-devcontainer/main/scaffold.sh | bash
 
-# バージョンを固定する場合
-AGENTS_DEVCONTAINER_TAG=v0.1.0 bash scaffold.sh
+# 公開済み tag に固定する場合
+AGENTS_DEVCONTAINER_TAG=<published-tag> bash scaffold.sh
 ```
 
 スクリプトは以下を行います:
 - `vendor/agents-devcontainer` を submodule として追加（git リポジトリの場合）
 - `.devcontainer/` の生成（既に存在する場合はスキップ）
 - `devcontainer.project.json` の生成（プロジェクト固有の設定用）
+- `project-tools.yml` の生成（プロジェクト固有ツール追加用）
 - `merge.sh` で `devcontainer.json` を生成
 
 `.devcontainer` が既にあるリポジトリでも実行可能です。
 
-### 方法 B: 手動（ツールを追加したい場合）
+### 方法 B: Dockerfile が必要な場合
 
-`.devcontainer/devcontainer.json` を作成し、`image` の代わりに `build` を使用:
+apt / pip / npm / binary の追加だけなら、scaffold が生成する
+`.devcontainer/project-tools.yml` を使う。`agents-post-create` が
+`agents-tools-install` を呼び出し、container 作成時に自動で処理する。
+
+base image 自体を拡張する必要がある場合だけ、`.devcontainer/devcontainer.json` で
+`image` の代わりに `build` を使用する:
 
 ```dockerfile
 # .devcontainer/Dockerfile
@@ -105,6 +113,21 @@ git commit -m "chore(devcontainer): update to latest agents-devcontainer"
 - `remoteEnv`: キー単位のマージ（project の値が優先）
 - `image` / `build`: project が優先
 - `postCreateCommand` / `postStartCommand`: project が優先（なければ base の `agents-post-create` / `agents-post-start`）
+
+### プロジェクト固有ツールの追加
+
+scaffold は `.devcontainer/project-tools.yml` も生成する。
+`agents-post-create` は container 作成時に `agents-tools-install` を実行し、この YAML を読む。
+
+対応している主な項目:
+
+- `apt`
+- `pip`（`uv tool install` 経由）
+- `npm`
+- `binary`
+- `post_install`
+
+より複雑な処理が必要な場合は `.devcontainer/post-install.sh` を executable にして配置する。
 
 ### SDD 統合ファイルの更新
 
