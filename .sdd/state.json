@@ -1,5 +1,5 @@
 {
-  "feature": "issue-55-sdd-minimal",
+  "feature": "issue-63-external-injection",
   "tier": 2,
-  "phase": "verify"
+  "phase": "implement"
 }

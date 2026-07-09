@@ -46,5 +46,13 @@
     "assigned_agent": "codex",
     "handoff": "specs/issue-55-sdd-minimal/handoff.md",
     "blocked_reason": null
+  },
+  {
+    "id": "issue-63-external-injection",
+    "phase": "implement",
+    "status": "pending",
+    "assigned_agent": "codex",
+    "handoff": "specs/issue-63-external-injection/handoff.md",
+    "blocked_reason": null
   }
 ]

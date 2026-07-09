@@ -1,0 +1,102 @@
+{
+  "source": {
+    "url": "https://github.com/toshikimiyagawa/agents-devcontainer/issues/63"
+  },
+  "criteria": [
+    {
+      "issue_ac": "ISSUE-AC-001",
+      "text": "対象リポジトリを変更せずに agent tooling を注入する設計が specs/<feature>/spec.md に記載されている",
+      "disposition": "implemented",
+      "spec_acs": ["AC-001", "AC-004"],
+      "tasks": ["TASK-001", "TASK-003"],
+      "tests": [
+        {
+          "file": "tests/external-injection-docs.bats",
+          "name": "documents VS Code defaultFeatures external injection"
+        },
+        {
+          "file": "tests/adc-up.bats",
+          "name": "adc up dry-run keeps state outside target repository"
+        }
+      ]
+    },
+    {
+      "issue_ac": "ISSUE-AC-002",
+      "text": "VS Code Reopen in Container 経由の導入手順が文書化されている",
+      "disposition": "implemented",
+      "spec_acs": ["AC-001"],
+      "tasks": ["TASK-003"],
+      "tests": [
+        {
+          "file": "tests/external-injection-docs.bats",
+          "name": "documents VS Code defaultFeatures external injection"
+        }
+      ]
+    },
+    {
+      "issue_ac": "ISSUE-AC-003",
+      "text": "CLI 経由は adc up を正式入口とすることが文書化されている",
+      "disposition": "implemented",
+      "spec_acs": ["AC-002"],
+      "tasks": ["TASK-002", "TASK-003"],
+      "tests": [
+        {
+          "file": "tests/adc-up.bats",
+          "name": "adc up dry-run injects agents feature with additional-features"
+        }
+      ]
+    },
+    {
+      "issue_ac": "ISSUE-AC-004",
+      "text": "生の devcontainer up では同等挙動にならない制約が明記されている",
+      "disposition": "implemented",
+      "spec_acs": ["AC-003"],
+      "tasks": ["TASK-002", "TASK-003"],
+      "tests": [
+        {
+          "file": "tests/external-injection-docs.bats",
+          "name": "documents raw devcontainer up limitation"
+        }
+      ]
+    },
+    {
+      "issue_ac": "ISSUE-AC-005",
+      "text": "state/cache/dotfiles を対象リポジトリ外に置く方針が定義されている",
+      "disposition": "implemented",
+      "spec_acs": ["AC-004"],
+      "tasks": ["TASK-001", "TASK-002"],
+      "tests": [
+        {
+          "file": "tests/adc-up.bats",
+          "name": "adc up dry-run keeps state outside target repository"
+        }
+      ]
+    },
+    {
+      "issue_ac": "ISSUE-AC-006",
+      "text": "既存 devcontainer を壊さないことを確認する最小テストまたは検証手順が定義されている",
+      "disposition": "implemented",
+      "spec_acs": ["AC-006", "AC-007"],
+      "tasks": ["TASK-004"],
+      "tests": [
+        {
+          "file": "tests/scaffold.bats",
+          "name": "generates devcontainer.json"
+        }
+      ]
+    },
+    {
+      "issue_ac": "ISSUE-AC-007",
+      "text": "SDD Tier 2 として spec / plan / tasks が作成され、実装前に freeze されている",
+      "disposition": "implemented",
+      "spec_acs": ["AC-005", "AC-007"],
+      "tasks": ["TASK-001", "TASK-002", "TASK-003", "TASK-004"],
+      "tests": [
+        {
+          "file": "tests/feature-agents.bats",
+          "name": "feature install script declares Debian Ubuntu support boundary"
+        }
+      ]
+    }
+  ]
+}

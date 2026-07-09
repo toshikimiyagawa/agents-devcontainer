@@ -35,6 +35,7 @@ check_workflow() {
   must grep -Fq 'select(.phase=="implement" and (.status=="in_progress" or .status=="pending"))' "$workflow"
   must grep -Fq 'run: bats tests/' "$workflow"
   must grep -Fq 'state_tier=$(jq -er' "$workflow"
+  must grep -Fq 'state_phase=$(jq -er' "$workflow"
   must grep -Fq 'has_tier2_label=$(jq -r' "$workflow"
   must grep -Fq 'index("sdd:tier-2") != null' "$workflow"
   must grep -Fq 'if [ "$state_tier" != 2 ] && [ "$has_tier2_label" = true ]; then' "$workflow"
@@ -49,14 +50,19 @@ check_workflow() {
   must assert_text "$tier2" 'PR Tier label must be sdd:tier-2 for Tier 2 state.'
   must assert_text "$tier2" 'scripts/check-sdd-contract.sh \'
   must assert_text "$tier2" '--feature "$(jq -r .feature .sdd/state.json)" \'
+  must assert_text "$tier2" 'case "$state_phase" in'
+  must assert_text "$tier2" 'implement)'
+  must assert_text "$tier2" '--mode freeze'
+  must assert_text "$tier2" 'verify)'
   must assert_text "$tier2" '--mode verify \'
   must assert_text "$tier2" '--base "${{ github.event.pull_request.base.sha }}" \'
   must assert_text "$tier2" '--expected-tier 2'
+  must assert_text "$tier2" 'Tier 2 PR state phase must be implement or verify.'
   state=$(grep -nF 'state_tier=$(jq -er' "$workflow" | cut -d: -f1)
   reverse=$(grep -nF 'if [ "$state_tier" != 2 ] && [ "$has_tier2_label" = true ]; then' "$workflow" | cut -d: -f1)
   guard=$(grep -nF 'if [ "$state_tier" = 2 ]; then' "$workflow" | cut -d: -f1)
   label_count=$(grep -nF 'tier_count=$(printf' "$workflow" | cut -d: -f1)
-  validator=$(grep -nF 'scripts/check-sdd-contract.sh \' "$workflow" | cut -d: -f1)
+  validator=$(grep -nF 'case "$state_phase" in' "$workflow" | cut -d: -f1)
   must test "$(grep -cF 'tier_count=$(printf' "$workflow")" -eq 1
   must test "$state" -lt "$reverse"
   must test "$reverse" -lt "$guard"
@@ -66,11 +72,12 @@ check_workflow() {
 }
 
 run_tier_gate() {
-  local workflow=$1 state_tier=$2 labels=$3 root=$TMP_DIR/gate-$2
+  local workflow=$1 state_tier=$2 labels=$3 phase=${4:-verify}
+  local root=$TMP_DIR/gate-$state_tier-$phase
   rm -rf "$root"
   mkdir -p "$root/.sdd" "$root/scripts"
-  printf '{"feature":"fixture","tier":%s,"phase":"verify"}\n' "$state_tier" > "$root/.sdd/state.json"
-  printf '%s\n' '#!/usr/bin/env bash' 'printf called > validator-called' > "$root/scripts/check-sdd-contract.sh"
+  printf '{"feature":"fixture","tier":%s,"phase":"%s"}\n' "$state_tier" "$phase" > "$root/.sdd/state.json"
+  printf '%s\n' '#!/usr/bin/env bash' 'printf "%s\n" "$*" > validator-args' > "$root/scripts/check-sdd-contract.sh"
   chmod +x "$root/scripts/check-sdd-contract.sh"
   awk -v labels="$labels" '
     /- name: Tier 2 traceability gate/ { found=1; next }
@@ -79,6 +86,7 @@ run_tier_gate() {
     body {
       sub(/^          /, "")
       if (index($0, "${{ toJSON(github.event.pull_request.labels.*.name) }}")) print labels
+      else if (index($0, "${{ github.event.pull_request.base.sha }}")) print "        --base \"base-sha\" \\"
       else print
     }' "$workflow" > "$root/gate.sh"
   run bash -e -c 'cd "$1" && bash -e gate.sh' _ "$root"
@@ -92,7 +100,7 @@ run_tier_gate() {
   run check_workflow "$TMP_DIR/wrong-condition.yml"
   [ "$status" -ne 0 ]
 
-  sed 's@scripts/check-sdd-contract.sh \\@true # validator moved@' "$workflow" > "$TMP_DIR/moved.yml"
+  sed 's@case "\$state_phase" in@true # validator moved@' "$workflow" > "$TMP_DIR/moved.yml"
   printf '%s\n' 'scripts/check-sdd-contract.sh --mode verify' >> "$TMP_DIR/moved.yml"
   run check_workflow "$TMP_DIR/moved.yml"
   [ "$status" -ne 0 ]
@@ -122,6 +130,16 @@ run_tier_gate() {
   run_tier_gate "$workflow" 1 '["sdd:tier-2"]'
   [ "$status" -eq 1 ]
   [[ "$output" == *"PR Tier label sdd:tier-2 does not match lower-tier state."* ]]
+
+  run_tier_gate "$workflow" 2 '["sdd:tier-2"]' implement
+  [ "$status" -eq 0 ]
+  grep -F -- '--mode freeze' "$TMP_DIR/gate-2-implement/validator-args" >/dev/null
+  ! grep -F -- '--base' "$TMP_DIR/gate-2-implement/validator-args" >/dev/null
+
+  run_tier_gate "$workflow" 2 '["sdd:tier-2"]' verify
+  [ "$status" -eq 0 ]
+  grep -F -- '--mode verify' "$TMP_DIR/gate-2-verify/validator-args" >/dev/null
+  grep -F -- '--base' "$TMP_DIR/gate-2-verify/validator-args" >/dev/null
 }
 
 @test "reviewer compares source meaning and completion evidence" {
