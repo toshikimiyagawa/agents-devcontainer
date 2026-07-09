@@ -1,0 +1,17 @@
+{
+  "id": "agents",
+  "version": "1.0.0",
+  "name": "Agents Devcontainer Tooling",
+  "description": "Injects minimal agents-devcontainer runtime hooks without modifying the target repository.",
+  "documentationURL": "https://github.com/toshikimiyagawa/agents-devcontainer",
+  "containerEnv": {
+    "AGENTS_STATE_HOME": "/usr/local/share/agents-devcontainer/state",
+    "GH_CONFIG_DIR": "/usr/local/share/agents-devcontainer/state/gh",
+    "CLAUDE_CONFIG_DIR": "/usr/local/share/agents-devcontainer/state/claude"
+  },
+  "mounts": [
+    "source=agents-devcontainer-state-${devcontainerId},target=/usr/local/share/agents-devcontainer/state,type=volume"
+  ],
+  "postCreateCommand": "agents-feature-post-create",
+  "postStartCommand": "agents-feature-post-start"
+}
