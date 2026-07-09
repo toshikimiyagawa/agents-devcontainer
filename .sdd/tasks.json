@@ -50,7 +50,7 @@
   {
     "id": "issue-63-external-injection",
     "phase": "implement",
-    "status": "pending",
+    "status": "completed",
     "assigned_agent": "codex",
     "handoff": "specs/issue-63-external-injection/handoff.md",
     "blocked_reason": null

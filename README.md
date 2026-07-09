@@ -198,6 +198,13 @@ Hermes の command と永続化 layout は必須である。clean rebuild では
 - `tests/smoke-devcontainer.bats`
 - `.github/workflows/smoke-devcontainer.yml`
 
+外部注入経路だけの変更、つまり `features/agents/**`、`bin/adc`、
+`docs/external-injection.md`、`tests/feature-agents.bats`、
+`tests/adc-up.bats`、`tests/external-injection-docs.bats` の変更では、
+上記の smoke 対象 path を同時に変更しない限り full devcontainer smoke は不要。
+その場合は対象 Bats と通常 CI で、Feature metadata、`adc up --dry-run` の引数生成、
+docs の制約記載、対象リポジトリを汚さないことを確認する。
+
 host smoke を実行できなかった場合は、理由を PR description に記載する。その時点では未完了であり、
 作成者による host smoke または GitHub Actions の full smoke が成功するまで merge しない。
 
