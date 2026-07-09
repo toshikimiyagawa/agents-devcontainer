@@ -1,0 +1,119 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+AGENTS_FEATURE_ID="${ADC_AGENTS_FEATURE_ID:-ghcr.io/toshikimiyagawa/agents-devcontainer/agents:1}"
+STATE_TARGET="/usr/local/share/agents-devcontainer/state"
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  adc up [--dry-run] [WORKSPACE]
+  adc --help
+
+adc up wraps `devcontainer up` and injects the agents-devcontainer Feature
+plus repo-external state storage.
+
+Use adc up for CLI launches. raw devcontainer up does not apply VS Code defaultFeatures,
+so it will not inject this Feature by itself.
+USAGE
+}
+
+quote_args() {
+  local arg
+  for arg in "$@"; do
+    printf ' %q' "$arg"
+  done
+  printf '\n'
+}
+
+state_source() {
+  local workspace=$1
+  local key
+  if command -v shasum >/dev/null 2>&1; then
+    key=$(printf '%s' "$workspace" | shasum -a 256 | awk '{print $1}')
+  else
+    key=$(printf '%s' "$workspace" | sha256sum | awk '{print $1}')
+  fi
+  printf 'agents-devcontainer-state-%s' "${key:0:16}"
+}
+
+run_up() {
+  local dry_run=0
+  local workspace=""
+
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --dry-run|--print)
+        dry_run=1
+        shift
+        ;;
+      --help|-h)
+        usage
+        return 0
+        ;;
+      -*)
+        printf 'adc: unknown option for up: %s\n' "$1" >&2
+        return 2
+        ;;
+      *)
+        if [ -n "$workspace" ]; then
+          printf 'adc: workspace specified more than once\n' >&2
+          return 2
+        fi
+        workspace=$1
+        shift
+        ;;
+    esac
+  done
+
+  if [ -z "$workspace" ]; then
+    workspace=$PWD
+  fi
+
+  case "$workspace" in
+    /*) ;;
+    *) workspace="$(cd "$workspace" && pwd -P)" ;;
+  esac
+
+  local features mount
+  features=$(printf '{"%s":{}}' "$AGENTS_FEATURE_ID")
+  mount="type=volume,source=$(state_source "$workspace"),target=$STATE_TARGET"
+
+  local cmd=(
+    devcontainer up
+    --workspace-folder "$workspace"
+    --additional-features "$features"
+    --mount "$mount"
+  )
+
+  if [ "$dry_run" -eq 1 ]; then
+    quote_args "${cmd[@]}" | sed 's/^ //'
+    return 0
+  fi
+
+  if ! command -v devcontainer >/dev/null 2>&1; then
+    printf 'adc: devcontainer CLI not found. Install @devcontainers/cli or use VS Code Reopen in Container.\n' >&2
+    return 127
+  fi
+
+  "${cmd[@]}"
+}
+
+main() {
+  case "${1:-}" in
+    ""|--help|-h)
+      usage
+      ;;
+    up)
+      shift
+      run_up "$@"
+      ;;
+    *)
+      printf 'adc: unknown command: %s\n' "$1" >&2
+      usage >&2
+      return 2
+      ;;
+  esac
+}
+
+main "$@"
