@@ -36,3 +36,12 @@ assert_file_contains() {
   assert_file_contains "$README" "docs/external-injection.md"
   assert_file_contains "$README" "adc up"
 }
+
+@test "README documents devcontainer smoke boundary for external injection changes" {
+  assert_file_contains "$README" "scripts/smoke-devcontainer.sh"
+  assert_file_contains "$README" ".devcontainer/Dockerfile.base"
+  assert_file_contains "$README" "scaffold/**"
+  assert_file_contains "$README" "features/agents/**"
+  assert_file_contains "$README" "bin/adc"
+  assert_file_contains "$README" "full devcontainer smoke は不要"
+}
