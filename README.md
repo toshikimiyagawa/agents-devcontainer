@@ -26,6 +26,14 @@ Claude Code, Gemini CLI, Codex CLI, Hermes Agent などのエージェントツ�
 
 これが完了するまでは dogfood `Dockerfile` の `FROM ghcr.io/...` pull が失敗します。
 
+## 導入方法の選び方
+
+- 新規プロジェクト、または `.devcontainer` をこのリポジトリの方式で管理してよい場合は、
+  下の scaffold を使う。
+- 既存devcontainer を持つリポジトリを汚したくない場合は、
+  [External injection for existing devcontainers](docs/external-injection.md) を使う。
+  VS Code は `dev.containers.defaultFeatures`、CLI は `adc up` が入口。
+
 ## 新プロジェクトへの導入
 
 ### 方法 A: scaffold スクリプト（推奨）
