@@ -6,7 +6,7 @@ ADC="$BATS_TEST_DIRNAME/../bin/adc"
 
 setup() {
   TMPDIR="$(mktemp -d)"
-  TARGET="$TMPDIR/target repo"
+  TARGET="$TMPDIR/target-repo"
   mkdir -p "$TARGET"
   before_listing="$TMPDIR/before.txt"
   after_listing="$TMPDIR/after.txt"
